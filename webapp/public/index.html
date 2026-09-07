@@ -8,83 +8,105 @@
   </head>
   <body>
     <main class="app">
-      <section class="toolbar" aria-label="Busca de ofertas">
+      <header class="app-header">
         <div>
           <p class="eyebrow">Ofertas do dia</p>
           <h1>Hub Afiliados Shopee</h1>
+          <p class="header-copy">Busque, selecione destinos e automatize disparos de ofertas.</p>
         </div>
+      </header>
 
-        <form id="searchForm" class="controls">
-          <label>
-            Palavra-chave
-            <input id="keyword" name="keyword" placeholder="fone bluetooth, cozinha, beleza..." />
-          </label>
-
-          <label>
-            Nota mínima
-            <input id="minRating" name="minRating" type="number" min="0" max="5" step="0.1" value="4.0" />
-          </label>
-
-          <label>
-            Limite
-            <input id="limit" name="limit" type="number" min="1" max="50" step="1" value="20" />
-          </label>
-
-          <button type="submit">Buscar Top</button>
-        </form>
-      </section>
+      <nav class="tabs" aria-label="Funcionalidades">
+        <button class="tab-button active" type="button" data-tab="manual">Manual</button>
+        <button class="tab-button" type="button" data-tab="schedules">Agendamentos</button>
+        <button class="tab-button" type="button" data-tab="whatsapp">WhatsApp</button>
+      </nav>
 
       <section class="status" id="status" aria-live="polite">
         Configure a busca e gere o ranking.
       </section>
 
-      <section class="groups-panel" aria-label="Grupos do WhatsApp">
-        <div class="section-title">
-          <div>
-            <h2>Grupos do WhatsApp</h2>
-            <p class="shop">Conecte pelo QR Code, selecione os grupos e salve os destinos.</p>
-          </div>
-          <div class="post-actions">
-            <button id="connectWhatsapp" type="button">Conectar</button>
-            <button id="loadGroups" type="button">Atualizar</button>
-            <button id="saveTargets" type="button">Salvar</button>
-          </div>
-        </div>
-        <div id="whatsappConnect" class="whatsapp-connect"></div>
-        <div id="groupsList" class="groups-list"></div>
-      </section>
-
-      <section class="schedules-panel" aria-label="Agendamentos">
-        <div class="section-title">
-          <div>
-            <h2>Agendamentos</h2>
-            <p class="shop">Disparos automáticos no horário de Brasília.</p>
-          </div>
-          <button id="saveSchedules" type="button">Salvar agenda</button>
-        </div>
-        <div id="schedulesList" class="schedules-list"></div>
-      </section>
-
-      <section class="content">
-        <div class="offers">
+      <section class="tab-panel active" data-panel="manual">
+        <section class="toolbar panel" aria-label="Busca de ofertas">
           <div class="section-title">
-            <h2>Ranking</h2>
-            <span id="count">0 ofertas</span>
-          </div>
-          <div id="offersList" class="offers-list"></div>
-        </div>
-
-        <aside class="post-panel">
-          <div class="section-title">
-            <h2>Post pronto</h2>
-            <div class="post-actions">
-              <button id="copyPost" type="button">Copiar</button>
-              <button id="sendPost" type="button">Enviar</button>
-              <button id="sendTop" type="button">Top</button>
+            <div>
+              <h2>Busca manual</h2>
+              <p class="shop">Gere um ranking por palavra-chave e envie posts sob demanda.</p>
             </div>
           </div>
-          <textarea id="postText" readonly placeholder="Selecione uma oferta para gerar o post."></textarea>
-        </aside>
+
+          <form id="searchForm" class="controls">
+            <label>
+              Palavra-chave
+              <input id="keyword" name="keyword" placeholder="fone bluetooth, cozinha, beleza..." />
+            </label>
+
+            <label>
+              Nota mínima
+              <input id="minRating" name="minRating" type="number" min="0" max="5" step="0.1" value="4.0" />
+            </label>
+
+            <label>
+              Limite
+              <input id="limit" name="limit" type="number" min="1" max="50" step="1" value="20" />
+            </label>
+
+            <button type="submit">Buscar Top</button>
+          </form>
+        </section>
+
+        <section class="content">
+          <div class="offers panel">
+            <div class="section-title">
+              <h2>Ranking</h2>
+              <span id="count">0 ofertas</span>
+            </div>
+            <div id="offersList" class="offers-list"></div>
+          </div>
+
+          <aside class="post-panel panel">
+            <div class="section-title">
+              <h2>Post pronto</h2>
+              <div class="post-actions">
+                <button id="copyPost" type="button">Copiar</button>
+                <button id="sendPost" type="button">Enviar</button>
+                <button id="sendTop" type="button">Top</button>
+              </div>
+            </div>
+            <textarea id="postText" readonly placeholder="Selecione uma oferta para gerar o post."></textarea>
+          </aside>
+        </section>
+      </section>
+
+      <section class="tab-panel" data-panel="schedules">
+        <section class="schedules-panel panel" aria-label="Agendamentos">
+          <div class="section-title">
+            <div>
+              <h2>Agendamentos</h2>
+              <p class="shop">Disparos automáticos no horário de Brasília.</p>
+            </div>
+            <button id="saveSchedules" type="button">Salvar agenda</button>
+          </div>
+          <div id="schedulesList" class="schedules-list"></div>
+        </section>
+      </section>
+
+      <section class="tab-panel" data-panel="whatsapp">
+        <section class="groups-panel panel" aria-label="Grupos do WhatsApp">
+          <div class="section-title">
+            <div>
+              <h2>Conexao e grupos</h2>
+              <p class="shop">Conecte pelo QR Code, selecione os grupos e salve os destinos.</p>
+            </div>
+            <div class="post-actions">
+              <button id="connectWhatsapp" type="button">Conectar</button>
+              <button id="loadGroups" type="button">Atualizar</button>
+              <button id="saveTargets" type="button">Salvar</button>
+            </div>
+          </div>
+          <div id="whatsappConnect" class="whatsapp-connect"></div>
+          <div id="groupsList" class="groups-list"></div>
+        </section>
       </section>
     </main>
 

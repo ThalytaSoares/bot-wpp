@@ -14,6 +14,8 @@ const groupsList = document.querySelector("#groupsList");
 const saveSchedules = document.querySelector("#saveSchedules");
 const schedulesList = document.querySelector("#schedulesList");
 const template = document.querySelector("#offerTemplate");
+const tabButtons = document.querySelectorAll(".tab-button");
+const tabPanels = document.querySelectorAll(".tab-panel");
 
 let currentOffers = [];
 let whatsappStatusTimer;
@@ -25,6 +27,16 @@ function setStatus(message, type = "info") {
 
 function formatPercent(value) {
   return `${Math.round(Number(value || 0) * 100)}%`;
+}
+
+function activateTab(tabName) {
+  for (const button of tabButtons) {
+    button.classList.toggle("active", button.dataset.tab === tabName);
+  }
+
+  for (const panel of tabPanels) {
+    panel.classList.toggle("active", panel.dataset.panel === tabName);
+  }
 }
 
 function renderOffers(offers) {
@@ -411,5 +423,11 @@ saveSchedules.addEventListener("click", async () => {
     setStatus(error.message, "error");
   }
 });
+
+for (const button of tabButtons) {
+  button.addEventListener("click", () => {
+    activateTab(button.dataset.tab);
+  });
+}
 
 loadSchedules();
