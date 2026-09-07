@@ -6,6 +6,11 @@ const postText = document.querySelector("#postText");
 const copyPost = document.querySelector("#copyPost");
 const sendPost = document.querySelector("#sendPost");
 const sendTop = document.querySelector("#sendTop");
+const connectWhatsapp = document.querySelector("#connectWhatsapp");
+const loadGroups = document.querySelector("#loadGroups");
+const saveTargets = document.querySelector("#saveTargets");
+const whatsappConnect = document.querySelector("#whatsappConnect");
+const groupsList = document.querySelector("#groupsList");
 const template = document.querySelector("#offerTemplate");
 
 let currentOffers = [];
@@ -59,6 +64,69 @@ function renderOffers(offers) {
 
     offersList.appendChild(node);
   }
+}
+
+function renderGroups(groups, targets = []) {
+  groupsList.innerHTML = "";
+  const selectedTargets = new Set(targets);
+
+  if (!groups.length) {
+    groupsList.innerHTML = '<p class="shop">Nenhum grupo encontrado.</p>';
+    return;
+  }
+
+  for (const group of groups) {
+    const label = document.createElement("label");
+    const checkbox = document.createElement("input");
+    const item = document.createElement("div");
+    const info = document.createElement("div");
+    const name = document.createElement("strong");
+    const id = document.createElement("code");
+
+    label.className = "group-choice";
+    checkbox.type = "checkbox";
+    checkbox.value = group.id;
+    checkbox.checked = selectedTargets.has(group.id);
+    item.className = "group-item";
+    name.textContent = group.name;
+    id.textContent = group.id;
+
+    info.append(name, id);
+    item.append(info);
+    label.append(checkbox, item);
+    groupsList.appendChild(label);
+  }
+}
+
+function renderWhatsappStatus(data) {
+  whatsappConnect.innerHTML = "";
+
+  const state = document.createElement("p");
+  state.className = "shop";
+  state.textContent = `Status: ${data.state || "desconhecido"}`;
+  whatsappConnect.appendChild(state);
+
+  if (data.qrDataUrl) {
+    const qr = document.createElement("img");
+    qr.className = "qr-code";
+    qr.src = data.qrDataUrl;
+    qr.alt = "QR Code para conectar WhatsApp";
+    whatsappConnect.appendChild(qr);
+    return;
+  }
+
+  if (data.state === "open") {
+    const ok = document.createElement("p");
+    ok.className = "shop";
+    ok.textContent = "WhatsApp conectado.";
+    whatsappConnect.appendChild(ok);
+    return;
+  }
+
+  const waiting = document.createElement("p");
+  waiting.className = "shop";
+  waiting.textContent = "Clique em Conectar e aguarde o QR Code aparecer.";
+  whatsappConnect.appendChild(waiting);
 }
 
 form.addEventListener("submit", async (event) => {
@@ -155,6 +223,74 @@ sendTop.addEventListener("click", async () => {
     }
 
     setStatus(data.message);
+  } catch (error) {
+    setStatus(error.message, "error");
+  }
+});
+
+loadGroups.addEventListener("click", async () => {
+  setStatus("Buscando grupos do WhatsApp...");
+
+  try {
+    const response = await fetch("/api/whatsapp/groups");
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || "Nao foi possivel listar os grupos.");
+    }
+
+    renderGroups(data.groups || [], data.targets || []);
+    setStatus(`${(data.groups || []).length} grupos encontrados.`);
+  } catch (error) {
+    renderGroups([]);
+    setStatus(error.message, "error");
+  }
+});
+
+saveTargets.addEventListener("click", async () => {
+  const targets = [...groupsList.querySelectorAll('input[type="checkbox"]:checked')]
+    .map((checkbox) => checkbox.value);
+
+  if (!targets.length) {
+    setStatus("Selecione pelo menos um grupo antes de salvar.", "error");
+    return;
+  }
+
+  setStatus("Salvando destinos do WhatsApp...");
+
+  try {
+    const response = await fetch("/api/whatsapp/targets", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ targets })
+    });
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || "Nao foi possivel salvar os destinos.");
+    }
+
+    setStatus(data.message);
+  } catch (error) {
+    setStatus(error.message, "error");
+  }
+});
+
+connectWhatsapp.addEventListener("click", async () => {
+  setStatus("Preparando conexao com o WhatsApp...");
+
+  try {
+    const response = await fetch("/api/whatsapp/status");
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || "Nao foi possivel iniciar o WhatsApp.");
+    }
+
+    renderWhatsappStatus(data);
+    setStatus(data.state === "open" ? "WhatsApp conectado." : "Aguardando QR Code do WhatsApp.");
   } catch (error) {
     setStatus(error.message, "error");
   }

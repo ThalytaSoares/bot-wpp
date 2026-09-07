@@ -138,15 +138,21 @@ button:hover,
 }
 
 .offers,
-.post-panel {
+.post-panel,
+.groups-panel {
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--panel);
   box-shadow: var(--shadow);
 }
 
-.offers {
+.offers,
+.groups-panel {
   padding: 16px;
+}
+
+.groups-panel {
+  margin-bottom: 16px;
 }
 
 .post-panel {
@@ -171,14 +177,20 @@ button:hover,
 
 #copyPost,
 #sendPost,
-#sendTop {
+#sendTop,
+#connectWhatsapp,
+#loadGroups,
+#saveTargets {
   padding: 9px 12px;
   background: var(--panel-strong);
 }
 
 #copyPost:hover,
 #sendPost:hover,
-#sendTop:hover {
+#sendTop:hover,
+#connectWhatsapp:hover,
+#loadGroups:hover,
+#saveTargets:hover {
   background: #26372b;
 }
 
@@ -192,6 +204,58 @@ button:hover,
 .offers-list {
   display: grid;
   gap: 12px;
+}
+
+.groups-list {
+  display: grid;
+  gap: 8px;
+}
+
+.whatsapp-connect {
+  display: grid;
+  justify-items: start;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.qr-code {
+  width: min(260px, 100%);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px;
+  background: #fff;
+}
+
+.group-choice {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  cursor: pointer;
+}
+
+.group-choice input {
+  width: 18px;
+  height: 18px;
+}
+
+.group-item {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px;
+  background: #fff;
+}
+
+.group-item div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.group-item code {
+  overflow-wrap: anywhere;
+  color: var(--muted);
+  font-size: 13px;
 }
 
 .offer-card {

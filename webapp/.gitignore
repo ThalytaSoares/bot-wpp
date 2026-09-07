@@ -2,3 +2,4 @@ node_modules/
 .env
 offers-cache.json
 auth_info_baileys/
+whatsapp-targets.json

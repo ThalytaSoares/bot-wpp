@@ -6,7 +6,12 @@ import { fileURLToPath } from "node:url";
 import { config } from "./config.js";
 import { buscarProdutos } from "./shopee.js";
 import { gerarPost, montarTopDoDia } from "./ranking.js";
-import { enviarMensagemWhatsapp, getWhatsappStatus } from "./whatsapp.js";
+import {
+  enviarMensagemWhatsapp,
+  getWhatsappStatus,
+  listarGruposWhatsapp
+} from "./whatsapp.js";
+import { carregarDestinosWhatsapp, salvarDestinosWhatsapp } from "./targets.js";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const publicDir = join(__dirname, "public");
@@ -27,6 +32,10 @@ function sendJson(response, statusCode, data) {
 function montarMensagemEnvio(posts, destinos) {
   const totalMensagens = posts.length * destinos.length;
   return `${totalMensagens} mensagens enviadas para ${destinos.length} destino${destinos.length === 1 ? "" : "s"}.`;
+}
+
+async function getDestinosEnvio() {
+  return carregarDestinosWhatsapp();
 }
 
 async function readJsonBody(request) {
@@ -72,9 +81,10 @@ async function handleApi(request, response) {
     try {
       const payload = await readJsonBody(request);
       const result = await enviarMensagemWhatsapp(payload.texto);
+      const destinos = await getDestinosEnvio();
 
       sendJson(response, 200, {
-        message: montarMensagemEnvio([payload.texto], config.whatsappTargets),
+        message: montarMensagemEnvio([payload.texto], destinos),
         result
       });
     } catch (error) {
@@ -101,9 +111,10 @@ async function handleApi(request, response) {
       for (const texto of posts) {
         results.push(await enviarMensagemWhatsapp(texto));
       }
+      const destinos = await getDestinosEnvio();
 
       sendJson(response, 200, {
-        message: montarMensagemEnvio(posts, config.whatsappTargets),
+        message: montarMensagemEnvio(posts, destinos),
         results
       });
     } catch (error) {
@@ -132,9 +143,10 @@ async function handleApi(request, response) {
       for (const post of posts) {
         results.push(await enviarMensagemWhatsapp(post));
       }
+      const destinos = await getDestinosEnvio();
 
       sendJson(response, 200, {
-        message: montarMensagemEnvio(posts, config.whatsappTargets),
+        message: montarMensagemEnvio(posts, destinos),
         totalFound: produtos.length,
         totalFiltered: posts.length,
         results
@@ -149,6 +161,47 @@ async function handleApi(request, response) {
   if (url.pathname === "/api/whatsapp/status" && request.method === "GET") {
     try {
       sendJson(response, 200, await getWhatsappStatus());
+    } catch (error) {
+      sendJson(response, 500, { error: error.message });
+    }
+
+    return;
+  }
+
+  if (url.pathname === "/api/whatsapp/groups" && request.method === "GET") {
+    try {
+      sendJson(response, 200, {
+        groups: await listarGruposWhatsapp(),
+        targets: await carregarDestinosWhatsapp()
+      });
+    } catch (error) {
+      sendJson(response, 500, { error: error.message });
+    }
+
+    return;
+  }
+
+  if (url.pathname === "/api/whatsapp/targets" && request.method === "GET") {
+    try {
+      sendJson(response, 200, {
+        targets: await carregarDestinosWhatsapp()
+      });
+    } catch (error) {
+      sendJson(response, 500, { error: error.message });
+    }
+
+    return;
+  }
+
+  if (url.pathname === "/api/whatsapp/targets" && request.method === "POST") {
+    try {
+      const payload = await readJsonBody(request);
+      const targets = await salvarDestinosWhatsapp(payload.targets);
+
+      sendJson(response, 200, {
+        message: `${targets.length} destino${targets.length === 1 ? "" : "s"} salvo${targets.length === 1 ? "" : "s"}.`,
+        targets
+      });
     } catch (error) {
       sendJson(response, 500, { error: error.message });
     }

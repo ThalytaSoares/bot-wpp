@@ -4,12 +4,16 @@ import makeWASocket, {
   useMultiFileAuthState
 } from "@whiskeysockets/baileys";
 import { Boom } from "@hapi/boom";
+import QRCode from "qrcode";
 import qrcode from "qrcode-terminal";
-import { config, assertWhatsappConfig } from "./config.js";
+import { config } from "./config.js";
+import { carregarDestinosWhatsapp } from "./targets.js";
 
 let socket;
 let connectionState = "disconnected";
 let connectionPromise;
+let currentQr;
+let currentQrDataUrl;
 
 function normalizarDestino(destino) {
   const value = String(destino || "").trim();
@@ -28,7 +32,7 @@ async function conectarWhatsapp() {
   }
 
   connectionPromise = (async () => {
-    const { state, saveCreds } = await useMultiFileAuthState("auth_info_baileys");
+    const { state, saveCreds } = await useMultiFileAuthState(config.whatsappAuthDir);
     const { version } = await fetchLatestBaileysVersion();
 
     socket = makeWASocket({
@@ -40,12 +44,26 @@ async function conectarWhatsapp() {
     socket.ev.on("creds.update", saveCreds);
     socket.ev.on("connection.update", ({ connection, lastDisconnect, qr }) => {
       if (qr) {
+        currentQr = qr;
+        QRCode.toDataURL(qr)
+          .then((dataUrl) => {
+            currentQrDataUrl = dataUrl;
+          })
+          .catch((error) => {
+            console.error("Erro ao gerar QR Code para a tela:", error);
+          });
+
         console.log("Escaneie este QR Code no WhatsApp para conectar:");
         qrcode.generate(qr, { small: true });
       }
 
       if (connection) {
         connectionState = connection;
+      }
+
+      if (connection === "open") {
+        currentQr = undefined;
+        currentQrDataUrl = undefined;
       }
 
       if (connection === "close") {
@@ -72,17 +90,41 @@ async function conectarWhatsapp() {
 
 export async function getWhatsappStatus() {
   await conectarWhatsapp();
+  const targets = await carregarDestinosWhatsapp();
 
   return {
     state: connectionState,
-    targets: config.whatsappTargets.map(normalizarDestino)
+    qr: currentQr,
+    qrDataUrl: currentQrDataUrl,
+    targets: targets.map(normalizarDestino)
   };
 }
 
-export async function enviarMensagemWhatsapp(texto) {
-  assertWhatsappConfig();
+export async function listarGruposWhatsapp() {
+  const client = await conectarWhatsapp();
 
+  if (connectionState !== "open") {
+    throw new Error("WhatsApp ainda nao esta conectado. Escaneie o QR Code nos logs do servidor.");
+  }
+
+  const groups = await client.groupFetchAllParticipating();
+
+  return Object.values(groups)
+    .map((group) => ({
+      id: group.id,
+      name: group.subject || "Grupo sem nome",
+      participants: group.participants?.length || 0
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
+}
+
+export async function enviarMensagemWhatsapp(texto) {
   const mensagem = String(texto || "").trim();
+  const targets = await carregarDestinosWhatsapp();
+
+  if (!targets.length) {
+    throw new Error("Selecione e salve pelo menos um grupo ou contato para envio.");
+  }
 
   if (!mensagem) {
     throw new Error("Informe uma mensagem para enviar no WhatsApp.");
@@ -96,7 +138,7 @@ export async function enviarMensagemWhatsapp(texto) {
 
   const results = [];
 
-  for (const destino of config.whatsappTargets.map(normalizarDestino)) {
+  for (const destino of targets.map(normalizarDestino)) {
     const result = await client.sendMessage(destino, { text: mensagem });
     results.push({ to: destino, result });
   }

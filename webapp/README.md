@@ -15,7 +15,7 @@ cd "C:\Users\Thalyta\Desktop\bot-wpp\webapp"
 ```env
 SHOPEE_APP_ID=seu_app_id
 SHOPEE_SECRET=seu_secret
-WHATSAPP_TARGETS=5511999999999,120363000000000000@g.us
+WHATSAPP_AUTH_DIR=auth_info_baileys
 PORT=3000
 ```
 
@@ -59,12 +59,14 @@ Plan: Free
 ```env
 SHOPEE_APP_ID=seu_app_id
 SHOPEE_SECRET=seu_secret
-WHATSAPP_TARGETS=5511999999999,120363000000000000@g.us
+WHATSAPP_AUTH_DIR=auth_info_baileys
 ```
 
-Use numeros com codigo do pais e DDD, separados por virgula. Para grupos, use o ID do grupo terminado em `@g.us`.
+`WHATSAPP_TARGETS` e opcional. A aplicacao permite selecionar e salvar os grupos pela propria tela.
 
 Esta versao usa uma biblioteca gratuita baseada no WhatsApp Web. No primeiro uso, acesse os logs do servidor e escaneie o QR Code com o WhatsApp. Em hospedagem gratuita, a sessao pode cair se o servico reiniciar ou dormir.
+
+Para configurar os grupos, abra o app depois de conectar o WhatsApp pelo QR Code, clique em `Atualizar` na secao `Grupos do WhatsApp`, marque os grupos desejados e clique em `Salvar`.
 
 7. Salve e aguarde o deploy.
 
