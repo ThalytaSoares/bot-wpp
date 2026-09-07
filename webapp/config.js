@@ -42,6 +42,7 @@ export const config = {
   whatsappAuthDir: process.env.WHATSAPP_AUTH_DIR || "auth_info_baileys",
   whatsappTargetsFile: process.env.WHATSAPP_TARGETS_FILE || "whatsapp-targets.json",
   schedulesFile: process.env.SCHEDULES_FILE || "schedules.json",
+  dispatchHistoryFile: process.env.DISPATCH_HISTORY_FILE || "dispatch-history.json",
   timezone: process.env.APP_TIMEZONE || "America/Sao_Paulo",
   whatsappTargets: parseList(process.env.WHATSAPP_TARGETS || process.env.WHATSAPP_TO || "")
 };

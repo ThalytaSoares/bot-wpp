@@ -4,8 +4,10 @@ import { config } from "./config.js";
 import { buscarProdutos } from "./shopee.js";
 import { gerarPost, montarTopDoDia } from "./ranking.js";
 import { enviarMensagemWhatsapp } from "./whatsapp.js";
+import { carregarDestinosWhatsapp } from "./targets.js";
 
 const schedulesPath = resolve(process.cwd(), config.schedulesFile);
+const historyPath = resolve(process.cwd(), config.dispatchHistoryFile);
 const defaultSchedules = [
   {
     id: "manha-dentistas",
@@ -90,10 +92,11 @@ export async function salvarAgendamentos(schedules) {
 
 async function executarAgendamento(schedule) {
   const produtos = await buscarProdutos({ keyword: schedule.keyword, listType: 0 });
-  const posts = montarTopDoDia(produtos, {
+  const offers = montarTopDoDia(produtos, {
     limit: schedule.limit,
     minRating: schedule.minRating
-  }).map(gerarPost);
+  });
+  const posts = offers.map(gerarPost);
 
   if (!posts.length) {
     throw new Error(`Nenhuma oferta passou pelos filtros para "${schedule.keyword}".`);
@@ -108,8 +111,50 @@ async function executarAgendamento(schedule) {
   return {
     totalFound: produtos.length,
     totalFiltered: posts.length,
+    offers: offers.map((offer) => ({
+      itemId: offer.itemId,
+      productName: offer.productName,
+      price: offer.price,
+      ratingStar: offer.ratingStar,
+      sales: offer.sales,
+      shopName: offer.shopName,
+      offerLink: offer.offerLink,
+      imageUrl: offer.imageUrl,
+      score: offer.score
+    })),
     results
   };
+}
+
+export async function carregarHistoricoDisparos() {
+  try {
+    const data = JSON.parse(await readFile(historyPath, "utf8"));
+    return Array.isArray(data.history) ? data.history : [];
+  } catch (error) {
+    if (error.code !== "ENOENT") {
+      throw error;
+    }
+  }
+
+  return [];
+}
+
+async function registrarHistoricoDisparo(entry) {
+  const history = await carregarHistoricoDisparos();
+  const nextHistory = [
+    {
+      id: `${Date.now()}-${entry.scheduleId}`,
+      createdAt: new Date().toISOString(),
+      ...entry
+    },
+    ...history
+  ].slice(0, 30);
+
+  await writeFile(
+    historyPath,
+    JSON.stringify({ history: nextHistory }, null, 2),
+    "utf8"
+  );
 }
 
 export async function verificarAgendamentos() {
@@ -131,10 +176,39 @@ export async function verificarAgendamentos() {
     try {
       console.log(`Executando agendamento ${schedule.id}: ${schedule.keyword}`);
       const result = await executarAgendamento(schedule);
+      const targets = await carregarDestinosWhatsapp();
+
+      await registrarHistoricoDisparo({
+        scheduleId: schedule.id,
+        status: "success",
+        scheduledTime: schedule.time,
+        keyword: schedule.keyword,
+        limit: schedule.limit,
+        minRating: schedule.minRating,
+        targets,
+        totalFound: result.totalFound,
+        totalFiltered: result.totalFiltered,
+        offers: result.offers
+      });
+
       console.log(
         `Agendamento ${schedule.id} enviado: ${result.totalFiltered}/${result.totalFound} ofertas.`
       );
     } catch (error) {
+      await registrarHistoricoDisparo({
+        scheduleId: schedule.id,
+        status: "error",
+        scheduledTime: schedule.time,
+        keyword: schedule.keyword,
+        limit: schedule.limit,
+        minRating: schedule.minRating,
+        targets: await carregarDestinosWhatsapp().catch(() => []),
+        totalFound: 0,
+        totalFiltered: 0,
+        offers: [],
+        error: error.message
+      });
+
       console.error(`Erro no agendamento ${schedule.id}:`, error);
     } finally {
       schedule.lastRunDate = now.date;

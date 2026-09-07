@@ -70,10 +70,10 @@
               <div class="post-actions">
                 <button id="copyPost" type="button">Copiar</button>
                 <button id="sendPost" type="button">Enviar</button>
-                <button id="sendTop" type="button">Top</button>
+                <button id="sendTop" type="button">Enviar Top 3 agora</button>
               </div>
             </div>
-            <textarea id="postText" readonly placeholder="Selecione uma oferta para gerar o post."></textarea>
+            <textarea id="postText" placeholder="Selecione uma oferta para gerar o post e edite antes de enviar."></textarea>
           </aside>
         </section>
       </section>
@@ -88,6 +88,17 @@
             <button id="saveSchedules" type="button">Salvar agenda</button>
           </div>
           <div id="schedulesList" class="schedules-list"></div>
+        </section>
+
+        <section class="history-panel panel" aria-label="Historico de disparos">
+          <div class="section-title">
+            <div>
+              <h2>Historico de envios</h2>
+              <p class="shop">Veja quais ofertas foram enviadas pelos agendamentos.</p>
+            </div>
+            <button id="loadHistory" type="button">Atualizar historico</button>
+          </div>
+          <div id="historyList" class="history-list"></div>
         </section>
       </section>
 

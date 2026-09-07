@@ -13,6 +13,8 @@ const whatsappConnect = document.querySelector("#whatsappConnect");
 const groupsList = document.querySelector("#groupsList");
 const saveSchedules = document.querySelector("#saveSchedules");
 const schedulesList = document.querySelector("#schedulesList");
+const loadHistory = document.querySelector("#loadHistory");
+const historyList = document.querySelector("#historyList");
 const template = document.querySelector("#offerTemplate");
 const tabButtons = document.querySelectorAll(".tab-button");
 const tabPanels = document.querySelectorAll(".tab-panel");
@@ -191,6 +193,85 @@ function renderSchedules(schedules = []) {
   }
 }
 
+function formatDateTime(value) {
+  if (!value) {
+    return "";
+  }
+
+  return new Intl.DateTimeFormat("pt-BR", {
+    dateStyle: "short",
+    timeStyle: "short"
+  }).format(new Date(value));
+}
+
+function renderHistory(history = []) {
+  historyList.innerHTML = "";
+
+  if (!history.length) {
+    historyList.innerHTML = '<p class="shop">Nenhum envio agendado registrado ainda.</p>';
+    return;
+  }
+
+  for (const entry of history) {
+    const item = document.createElement("article");
+    const title = document.createElement("div");
+    const heading = document.createElement("h3");
+    const meta = document.createElement("p");
+    const offers = document.createElement("div");
+
+    item.className = `history-item ${entry.status === "error" ? "history-error" : ""}`;
+    title.className = "history-title";
+    offers.className = "history-offers";
+    heading.textContent = `${entry.scheduledTime} - ${entry.keyword}`;
+    meta.className = "shop";
+    meta.textContent = entry.status === "error"
+      ? `Falhou em ${formatDateTime(entry.createdAt)}: ${entry.error}`
+      : `${entry.totalFiltered} ofertas enviadas em ${formatDateTime(entry.createdAt)} para ${entry.targets?.length || 0} destino(s).`;
+
+    title.append(heading, meta);
+    item.appendChild(title);
+
+    for (const offer of entry.offers || []) {
+      const offerRow = document.createElement("a");
+      const image = document.createElement("img");
+      const info = document.createElement("div");
+      const name = document.createElement("strong");
+      const detail = document.createElement("span");
+
+      offerRow.className = "history-offer";
+      offerRow.href = offer.offerLink;
+      offerRow.target = "_blank";
+      offerRow.rel = "noreferrer";
+      image.src = offer.imageUrl || "";
+      image.alt = offer.productName || "Produto Shopee";
+      name.textContent = offer.productName || "Oferta enviada";
+      detail.textContent = `R$ ${offer.price} | ${offer.ratingStar || 0} estrelas | ${offer.shopName || "Shopee"}`;
+
+      info.append(name, detail);
+      offerRow.append(image, info);
+      offers.appendChild(offerRow);
+    }
+
+    item.appendChild(offers);
+    historyList.appendChild(item);
+  }
+}
+
+async function loadScheduleHistory() {
+  try {
+    const response = await fetch("/api/schedules/history");
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || "Nao foi possivel carregar o historico.");
+    }
+
+    renderHistory(data.history || []);
+  } catch (error) {
+    setStatus(error.message, "error");
+  }
+}
+
 async function loadSchedules() {
   try {
     const response = await fetch("/api/schedules");
@@ -301,11 +382,11 @@ sendPost.addEventListener("click", async () => {
 
 sendTop.addEventListener("click", async () => {
   if (!currentOffers.length) {
-    setStatus("Busque ofertas antes de enviar o Top.", "error");
+    setStatus("Busque ofertas antes de enviar o Top 3 agora.", "error");
     return;
   }
 
-  setStatus("Enviando Top para o WhatsApp...");
+  setStatus("Enviando Top 3 agora para o WhatsApp...");
 
   try {
     const response = await fetch("/api/whatsapp/top", {
@@ -321,7 +402,7 @@ sendTop.addEventListener("click", async () => {
     const data = await response.json();
 
     if (!response.ok) {
-      throw new Error(data.error || "Nao foi possivel enviar o Top para o WhatsApp.");
+      throw new Error(data.error || "Nao foi possivel enviar o Top 3 para o WhatsApp.");
     }
 
     setStatus(data.message);
@@ -419,9 +500,16 @@ saveSchedules.addEventListener("click", async () => {
 
     renderSchedules(data.schedules || []);
     setStatus(data.message);
+    loadScheduleHistory();
   } catch (error) {
     setStatus(error.message, "error");
   }
+});
+
+loadHistory.addEventListener("click", async () => {
+  setStatus("Atualizando historico de envios...");
+  await loadScheduleHistory();
+  setStatus("Historico atualizado.");
 });
 
 for (const button of tabButtons) {
@@ -431,3 +519,4 @@ for (const button of tabButtons) {
 }
 
 loadSchedules();
+loadScheduleHistory();

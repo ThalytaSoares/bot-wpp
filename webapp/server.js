@@ -13,6 +13,7 @@ import {
 } from "./whatsapp.js";
 import { carregarDestinosWhatsapp, salvarDestinosWhatsapp } from "./targets.js";
 import {
+  carregarHistoricoDisparos,
   carregarAgendamentos,
   iniciarAgendador,
   salvarAgendamentos
@@ -219,6 +220,18 @@ async function handleApi(request, response) {
       sendJson(response, 200, {
         timezone: config.timezone,
         schedules: await carregarAgendamentos()
+      });
+    } catch (error) {
+      sendJson(response, 500, { error: error.message });
+    }
+
+    return;
+  }
+
+  if (url.pathname === "/api/schedules/history" && request.method === "GET") {
+    try {
+      sendJson(response, 200, {
+        history: await carregarHistoricoDisparos()
       });
     } catch (error) {
       sendJson(response, 500, { error: error.message });

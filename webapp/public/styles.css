@@ -165,11 +165,13 @@ h2 {
 .offers,
 .post-panel,
 .groups-panel,
-.schedules-panel {
+.schedules-panel,
+.history-panel {
   padding: 18px;
 }
 
-.toolbar {
+.toolbar,
+.schedules-panel {
   margin-bottom: 16px;
 }
 
@@ -241,7 +243,8 @@ textarea:focus {
 #connectWhatsapp,
 #loadGroups,
 #saveTargets,
-#saveSchedules {
+#saveSchedules,
+#loadHistory {
   padding: 9px 12px;
   background: var(--ink);
 }
@@ -252,7 +255,8 @@ textarea:focus {
 #connectWhatsapp:hover,
 #loadGroups:hover,
 #saveTargets:hover,
-#saveSchedules:hover {
+#saveSchedules:hover,
+#loadHistory:hover {
   background: #26372b;
 }
 
@@ -264,7 +268,9 @@ textarea:focus {
 
 .offers-list,
 .groups-list,
-.schedules-list {
+.schedules-list,
+.history-list,
+.history-offers {
   display: grid;
   gap: 12px;
 }
@@ -380,11 +386,65 @@ textarea {
 }
 
 .group-item,
-.schedule-row {
+.schedule-row,
+.history-item {
   border: 1px solid var(--line);
   border-radius: 8px;
   padding: 12px;
   background: #fff;
+}
+
+.history-error {
+  border-color: #f0b5ae;
+  background: #fff7f6;
+}
+
+.history-title h3 {
+  margin-bottom: 4px;
+  font-size: 17px;
+}
+
+.history-offer {
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.history-offer:hover {
+  border-color: #f0b5ae;
+  background: #fff8f5;
+}
+
+.history-offer img {
+  width: 58px;
+  height: 58px;
+  border-radius: 8px;
+  object-fit: cover;
+  background: #edf1eb;
+}
+
+.history-offer div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.history-offer strong,
+.history-offer span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.history-offer span {
+  color: var(--muted);
+  font-size: 13px;
 }
 
 .group-item div {
