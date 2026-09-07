@@ -92,6 +92,10 @@ export async function getWhatsappStatus() {
   await conectarWhatsapp();
   const targets = await carregarDestinosWhatsapp();
 
+  if (currentQr && !currentQrDataUrl) {
+    currentQrDataUrl = await QRCode.toDataURL(currentQr);
+  }
+
   return {
     state: connectionState,
     qr: currentQr,

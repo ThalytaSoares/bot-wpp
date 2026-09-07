@@ -14,6 +14,7 @@ const groupsList = document.querySelector("#groupsList");
 const template = document.querySelector("#offerTemplate");
 
 let currentOffers = [];
+let whatsappStatusTimer;
 
 function setStatus(message, type = "info") {
   statusEl.textContent = message;
@@ -127,6 +128,31 @@ function renderWhatsappStatus(data) {
   waiting.className = "shop";
   waiting.textContent = "Clique em Conectar e aguarde o QR Code aparecer.";
   whatsappConnect.appendChild(waiting);
+}
+
+async function atualizarStatusWhatsapp({ keepPolling = false } = {}) {
+  const response = await fetch("/api/whatsapp/status");
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || "Nao foi possivel iniciar o WhatsApp.");
+  }
+
+  renderWhatsappStatus(data);
+
+  if (whatsappStatusTimer) {
+    clearTimeout(whatsappStatusTimer);
+  }
+
+  if (keepPolling && data.state !== "open" && !data.qrDataUrl) {
+    whatsappStatusTimer = setTimeout(() => {
+      atualizarStatusWhatsapp({ keepPolling: true }).catch((error) => {
+        setStatus(error.message, "error");
+      });
+    }, 1500);
+  }
+
+  return data;
 }
 
 form.addEventListener("submit", async (event) => {
@@ -282,14 +308,7 @@ connectWhatsapp.addEventListener("click", async () => {
   setStatus("Preparando conexao com o WhatsApp...");
 
   try {
-    const response = await fetch("/api/whatsapp/status");
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.error || "Nao foi possivel iniciar o WhatsApp.");
-    }
-
-    renderWhatsappStatus(data);
+    const data = await atualizarStatusWhatsapp({ keepPolling: true });
     setStatus(data.state === "open" ? "WhatsApp conectado." : "Aguardando QR Code do WhatsApp.");
   } catch (error) {
     setStatus(error.message, "error");
