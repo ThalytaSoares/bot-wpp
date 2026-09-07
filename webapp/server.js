@@ -12,6 +12,11 @@ import {
   listarGruposWhatsapp
 } from "./whatsapp.js";
 import { carregarDestinosWhatsapp, salvarDestinosWhatsapp } from "./targets.js";
+import {
+  carregarAgendamentos,
+  iniciarAgendador,
+  salvarAgendamentos
+} from "./scheduler.js";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const publicDir = join(__dirname, "public");
@@ -209,6 +214,36 @@ async function handleApi(request, response) {
     return;
   }
 
+  if (url.pathname === "/api/schedules" && request.method === "GET") {
+    try {
+      sendJson(response, 200, {
+        timezone: config.timezone,
+        schedules: await carregarAgendamentos()
+      });
+    } catch (error) {
+      sendJson(response, 500, { error: error.message });
+    }
+
+    return;
+  }
+
+  if (url.pathname === "/api/schedules" && request.method === "POST") {
+    try {
+      const payload = await readJsonBody(request);
+      const schedules = await salvarAgendamentos(payload.schedules);
+
+      sendJson(response, 200, {
+        message: "Agendamentos salvos.",
+        timezone: config.timezone,
+        schedules
+      });
+    } catch (error) {
+      sendJson(response, 500, { error: error.message });
+    }
+
+    return;
+  }
+
   if (url.pathname.startsWith("/api/")) {
     sendJson(response, 404, { error: "Rota nao encontrada." });
     return;
@@ -245,4 +280,5 @@ const server = http.createServer(async (request, response) => {
 
 server.listen(config.port, () => {
   console.log(`Hub Afiliados Shopee rodando em http://localhost:${config.port}`);
+  iniciarAgendador();
 });

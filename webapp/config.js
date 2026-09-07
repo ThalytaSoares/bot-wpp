@@ -41,6 +41,8 @@ export const config = {
   shopeeSecret: process.env.SHOPEE_SECRET || "",
   whatsappAuthDir: process.env.WHATSAPP_AUTH_DIR || "auth_info_baileys",
   whatsappTargetsFile: process.env.WHATSAPP_TARGETS_FILE || "whatsapp-targets.json",
+  schedulesFile: process.env.SCHEDULES_FILE || "schedules.json",
+  timezone: process.env.APP_TIMEZONE || "America/Sao_Paulo",
   whatsappTargets: parseList(process.env.WHATSAPP_TARGETS || process.env.WHATSAPP_TO || "")
 };
 

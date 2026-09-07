@@ -3,3 +3,4 @@ node_modules/
 offers-cache.json
 auth_info_baileys/
 whatsapp-targets.json
+schedules.json

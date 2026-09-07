@@ -139,7 +139,8 @@ button:hover,
 
 .offers,
 .post-panel,
-.groups-panel {
+.groups-panel,
+.schedules-panel {
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--panel);
@@ -147,11 +148,13 @@ button:hover,
 }
 
 .offers,
-.groups-panel {
+.groups-panel,
+.schedules-panel {
   padding: 16px;
 }
 
-.groups-panel {
+.groups-panel,
+.schedules-panel {
   margin-bottom: 16px;
 }
 
@@ -180,7 +183,8 @@ button:hover,
 #sendTop,
 #connectWhatsapp,
 #loadGroups,
-#saveTargets {
+#saveTargets,
+#saveSchedules {
   padding: 9px 12px;
   background: var(--panel-strong);
 }
@@ -190,7 +194,8 @@ button:hover,
 #sendTop:hover,
 #connectWhatsapp:hover,
 #loadGroups:hover,
-#saveTargets:hover {
+#saveTargets:hover,
+#saveSchedules:hover {
   background: #26372b;
 }
 
@@ -209,6 +214,33 @@ button:hover,
 .groups-list {
   display: grid;
   gap: 8px;
+}
+
+.schedules-list {
+  display: grid;
+  gap: 10px;
+}
+
+.schedule-row {
+  display: grid;
+  grid-template-columns: 92px 130px minmax(220px, 1fr) 90px;
+  gap: 12px;
+  align-items: end;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  background: #fff;
+}
+
+.schedule-row label:first-child {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.schedule-row input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
 }
 
 .whatsapp-connect {
@@ -358,6 +390,10 @@ textarea {
     grid-template-columns: 1fr 1fr;
   }
 
+  .schedule-row {
+    grid-template-columns: 1fr 1fr;
+  }
+
   .post-panel {
     position: static;
   }
@@ -374,7 +410,8 @@ textarea {
   }
 
   .controls,
-  .offer-card {
+  .offer-card,
+  .schedule-row {
     grid-template-columns: 1fr;
   }
 

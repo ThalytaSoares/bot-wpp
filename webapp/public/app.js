@@ -11,6 +11,8 @@ const loadGroups = document.querySelector("#loadGroups");
 const saveTargets = document.querySelector("#saveTargets");
 const whatsappConnect = document.querySelector("#whatsappConnect");
 const groupsList = document.querySelector("#groupsList");
+const saveSchedules = document.querySelector("#saveSchedules");
+const schedulesList = document.querySelector("#schedulesList");
 const template = document.querySelector("#offerTemplate");
 
 let currentOffers = [];
@@ -128,6 +130,68 @@ function renderWhatsappStatus(data) {
   waiting.className = "shop";
   waiting.textContent = "Clique em Conectar e aguarde o QR Code aparecer.";
   whatsappConnect.appendChild(waiting);
+}
+
+function renderSchedules(schedules = []) {
+  schedulesList.innerHTML = "";
+
+  for (const schedule of schedules) {
+    const row = document.createElement("div");
+    const enabledLabel = document.createElement("label");
+    const enabled = document.createElement("input");
+    const timeLabel = document.createElement("label");
+    const time = document.createElement("input");
+    const keywordLabel = document.createElement("label");
+    const keyword = document.createElement("input");
+    const limitLabel = document.createElement("label");
+    const limit = document.createElement("input");
+
+    row.className = "schedule-row";
+    row.dataset.id = schedule.id;
+
+    enabledLabel.textContent = "Ativo";
+    enabled.type = "checkbox";
+    enabled.name = "enabled";
+    enabled.checked = schedule.enabled !== false;
+    enabledLabel.appendChild(enabled);
+
+    timeLabel.textContent = "Horario";
+    time.type = "time";
+    time.name = "time";
+    time.value = schedule.time || "10:00";
+    timeLabel.appendChild(time);
+
+    keywordLabel.textContent = "Busca";
+    keyword.name = "keyword";
+    keyword.value = schedule.keyword || "";
+    keywordLabel.appendChild(keyword);
+
+    limitLabel.textContent = "Qtd.";
+    limit.type = "number";
+    limit.name = "limit";
+    limit.min = "1";
+    limit.max = "10";
+    limit.value = schedule.limit || 3;
+    limitLabel.appendChild(limit);
+
+    row.append(enabledLabel, timeLabel, keywordLabel, limitLabel);
+    schedulesList.appendChild(row);
+  }
+}
+
+async function loadSchedules() {
+  try {
+    const response = await fetch("/api/schedules");
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || "Nao foi possivel carregar os agendamentos.");
+    }
+
+    renderSchedules(data.schedules || []);
+  } catch (error) {
+    setStatus(error.message, "error");
+  }
 }
 
 async function atualizarStatusWhatsapp({ keepPolling = false } = {}) {
@@ -314,3 +378,38 @@ connectWhatsapp.addEventListener("click", async () => {
     setStatus(error.message, "error");
   }
 });
+
+saveSchedules.addEventListener("click", async () => {
+  const schedules = [...schedulesList.querySelectorAll(".schedule-row")].map((row) => ({
+    id: row.dataset.id,
+    enabled: row.querySelector('[name="enabled"]').checked,
+    time: row.querySelector('[name="time"]').value,
+    keyword: row.querySelector('[name="keyword"]').value,
+    limit: Number(row.querySelector('[name="limit"]').value || 3),
+    minRating: 4.0
+  }));
+
+  setStatus("Salvando agendamentos...");
+
+  try {
+    const response = await fetch("/api/schedules", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ schedules })
+    });
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || "Nao foi possivel salvar a agenda.");
+    }
+
+    renderSchedules(data.schedules || []);
+    setStatus(data.message);
+  } catch (error) {
+    setStatus(error.message, "error");
+  }
+});
+
+loadSchedules();
