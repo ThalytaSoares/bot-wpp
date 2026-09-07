@@ -1,0 +1,13 @@
+CREATE TABLE produtos (
+    item_id INTEGER PRIMARY KEY,
+    nome TEXT,
+    preco REAL,
+    vendas INTEGER,
+    avaliacao REAL,
+    comissao REAL,
+    imagem TEXT,
+    link TEXT,
+    loja TEXT,
+    score REAL,
+    publicado INTEGER DEFAULT 0
+)

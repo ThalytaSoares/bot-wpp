@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+.env
+webapp/.env
+node_modules/
+webapp/node_modules/
+offers-cache.json
+webapp/offers-cache.json

@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Hub Afiliados Shopee</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="app">
+      <section class="toolbar" aria-label="Busca de ofertas">
+        <div>
+          <p class="eyebrow">Ofertas do dia</p>
+          <h1>Hub Afiliados Shopee</h1>
+        </div>
+
+        <form id="searchForm" class="controls">
+          <label>
+            Palavra-chave
+            <input id="keyword" name="keyword" placeholder="fone bluetooth, cozinha, beleza..." />
+          </label>
+
+          <label>
+            Nota mínima
+            <input id="minRating" name="minRating" type="number" min="0" max="5" step="0.1" value="4.5" />
+          </label>
+
+          <label>
+            Limite
+            <input id="limit" name="limit" type="number" min="1" max="50" step="1" value="20" />
+          </label>
+
+          <button type="submit">Buscar Top</button>
+        </form>
+      </section>
+
+      <section class="status" id="status" aria-live="polite">
+        Configure a busca e gere o ranking.
+      </section>
+
+      <section class="content">
+        <div class="offers">
+          <div class="section-title">
+            <h2>Ranking</h2>
+            <span id="count">0 ofertas</span>
+          </div>
+          <div id="offersList" class="offers-list"></div>
+        </div>
+
+        <aside class="post-panel">
+          <div class="section-title">
+            <h2>Post pronto</h2>
+            <button id="copyPost" type="button">Copiar</button>
+          </div>
+          <textarea id="postText" readonly placeholder="Selecione uma oferta para gerar o post."></textarea>
+        </aside>
+      </section>
+    </main>
+
+    <template id="offerTemplate">
+      <article class="offer-card">
+        <img class="offer-image" alt="" />
+        <div class="offer-body">
+          <div class="offer-rank"></div>
+          <h3></h3>
+          <p class="shop"></p>
+          <div class="metrics"></div>
+          <div class="actions">
+            <button class="select-offer" type="button">Gerar post</button>
+            <a class="open-offer" target="_blank" rel="noreferrer">Abrir oferta</a>
+          </div>
+        </div>
+      </article>
+    </template>
+
+    <script src="/app.js" type="module"></script>
+  </body>
+</html>
