@@ -4,6 +4,8 @@ const offersList = document.querySelector("#offersList");
 const countEl = document.querySelector("#count");
 const postText = document.querySelector("#postText");
 const copyPost = document.querySelector("#copyPost");
+const sendPost = document.querySelector("#sendPost");
+const sendTop = document.querySelector("#sendTop");
 const template = document.querySelector("#offerTemplate");
 
 let currentOffers = [];
@@ -97,4 +99,63 @@ copyPost.addEventListener("click", async () => {
 
   await navigator.clipboard.writeText(postText.value);
   setStatus("Post copiado.");
+});
+
+sendPost.addEventListener("click", async () => {
+  if (!postText.value.trim()) {
+    setStatus("Selecione uma oferta antes de enviar.", "error");
+    return;
+  }
+
+  setStatus("Enviando post para o WhatsApp...");
+
+  try {
+    const response = await fetch("/api/whatsapp", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ texto: postText.value })
+    });
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || "Nao foi possivel enviar para o WhatsApp.");
+    }
+
+    setStatus(data.message);
+  } catch (error) {
+    setStatus(error.message, "error");
+  }
+});
+
+sendTop.addEventListener("click", async () => {
+  if (!currentOffers.length) {
+    setStatus("Busque ofertas antes de enviar o Top.", "error");
+    return;
+  }
+
+  setStatus("Enviando Top para o WhatsApp...");
+
+  try {
+    const response = await fetch("/api/whatsapp/top", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        textos: currentOffers.map((offer) => offer.post),
+        limit: 3
+      })
+    });
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || "Nao foi possivel enviar o Top para o WhatsApp.");
+    }
+
+    setStatus(data.message);
+  } catch (error) {
+    setStatus(error.message, "error");
+  }
 });

@@ -169,13 +169,24 @@ button:hover,
   font-weight: 700;
 }
 
-#copyPost {
+#copyPost,
+#sendPost,
+#sendTop {
   padding: 9px 12px;
   background: var(--panel-strong);
 }
 
-#copyPost:hover {
+#copyPost:hover,
+#sendPost:hover,
+#sendTop:hover {
   background: #26372b;
+}
+
+.post-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
 }
 
 .offers-list {

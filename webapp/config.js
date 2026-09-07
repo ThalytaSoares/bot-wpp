@@ -31,11 +31,23 @@ loadDotEnv();
 export const config = {
   port: Number(process.env.PORT || 3000),
   shopeeAppId: process.env.SHOPEE_APP_ID || "",
-  shopeeSecret: process.env.SHOPEE_SECRET || ""
+  shopeeSecret: process.env.SHOPEE_SECRET || "",
+  whatsappTargets: (process.env.WHATSAPP_TARGETS || process.env.WHATSAPP_TO || "")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean)
 };
 
 export function assertShopeeConfig() {
   if (!config.shopeeAppId || !config.shopeeSecret) {
     throw new Error("Configure SHOPEE_APP_ID e SHOPEE_SECRET no arquivo .env.");
+  }
+}
+
+export function assertWhatsappConfig() {
+  if (!config.whatsappTargets.length) {
+    throw new Error(
+      "Configure WHATSAPP_TARGETS nas variaveis de ambiente com os contatos ou grupos de destino."
+    );
   }
 }

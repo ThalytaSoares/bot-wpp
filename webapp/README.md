@@ -15,6 +15,7 @@ cd "C:\Users\Thalyta\Desktop\bot-wpp\webapp"
 ```env
 SHOPEE_APP_ID=seu_app_id
 SHOPEE_SECRET=seu_secret
+WHATSAPP_TARGETS=5511999999999,120363000000000000@g.us
 PORT=3000
 ```
 
@@ -58,7 +59,12 @@ Plan: Free
 ```env
 SHOPEE_APP_ID=seu_app_id
 SHOPEE_SECRET=seu_secret
+WHATSAPP_TARGETS=5511999999999,120363000000000000@g.us
 ```
+
+Use numeros com codigo do pais e DDD, separados por virgula. Para grupos, use o ID do grupo terminado em `@g.us`.
+
+Esta versao usa uma biblioteca gratuita baseada no WhatsApp Web. No primeiro uso, acesse os logs do servidor e escaneie o QR Code com o WhatsApp. Em hospedagem gratuita, a sessao pode cair se o servico reiniciar ou dormir.
 
 7. Salve e aguarde o deploy.
 

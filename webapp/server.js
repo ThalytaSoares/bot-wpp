@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import { config } from "./config.js";
 import { buscarProdutos } from "./shopee.js";
 import { gerarPost, montarTopDoDia } from "./ranking.js";
+import { enviarMensagemWhatsapp, getWhatsappStatus } from "./whatsapp.js";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const publicDir = join(__dirname, "public");
@@ -23,33 +24,141 @@ function sendJson(response, statusCode, data) {
   response.end(JSON.stringify(data));
 }
 
+function montarMensagemEnvio(posts, destinos) {
+  const totalMensagens = posts.length * destinos.length;
+  return `${totalMensagens} mensagens enviadas para ${destinos.length} destino${destinos.length === 1 ? "" : "s"}.`;
+}
+
+async function readJsonBody(request) {
+  const chunks = [];
+
+  for await (const chunk of request) {
+    chunks.push(chunk);
+  }
+
+  const body = Buffer.concat(chunks).toString("utf8").trim();
+  return body ? JSON.parse(body) : {};
+}
+
 async function handleApi(request, response) {
   const url = new URL(request.url, `http://${request.headers.host}`);
 
-  if (url.pathname !== "/api/offers") {
-    sendJson(response, 404, { error: "Rota nao encontrada." });
+  if (url.pathname === "/api/offers" && request.method === "GET") {
+    try {
+      const keyword = url.searchParams.get("keyword") || "";
+      const listType = Number(url.searchParams.get("listType") || 0);
+      const limit = Number(url.searchParams.get("limit") || 20);
+      const minRating = Number(url.searchParams.get("minRating") || 4.0);
+      const produtos = await buscarProdutos({ keyword, listType });
+      const offers = montarTopDoDia(produtos, { limit, minRating }).map((produto) => ({
+        ...produto,
+        post: gerarPost(produto)
+      }));
+
+      sendJson(response, 200, {
+        generatedAt: new Date().toISOString(),
+        totalFound: produtos.length,
+        totalFiltered: offers.length,
+        offers
+      });
+    } catch (error) {
+      sendJson(response, 500, { error: error.message });
+    }
+
     return;
   }
 
-  try {
-    const keyword = url.searchParams.get("keyword") || "";
-    const listType = Number(url.searchParams.get("listType") || 0);
-    const limit = Number(url.searchParams.get("limit") || 20);
-    const minRating = Number(url.searchParams.get("minRating") || 4.0);
-    const produtos = await buscarProdutos({ keyword, listType });
-    const offers = montarTopDoDia(produtos, { limit, minRating }).map((produto) => ({
-      ...produto,
-      post: gerarPost(produto)
-    }));
+  if (url.pathname === "/api/whatsapp" && request.method === "POST") {
+    try {
+      const payload = await readJsonBody(request);
+      const result = await enviarMensagemWhatsapp(payload.texto);
 
-    sendJson(response, 200, {
-      generatedAt: new Date().toISOString(),
-      totalFound: produtos.length,
-      totalFiltered: offers.length,
-      offers
-    });
-  } catch (error) {
-    sendJson(response, 500, { error: error.message });
+      sendJson(response, 200, {
+        message: montarMensagemEnvio([payload.texto], config.whatsappTargets),
+        result
+      });
+    } catch (error) {
+      sendJson(response, 500, { error: error.message });
+    }
+
+    return;
+  }
+
+  if (url.pathname === "/api/whatsapp/top" && request.method === "POST") {
+    try {
+      const payload = await readJsonBody(request);
+      const textos = Array.isArray(payload.textos) ? payload.textos : [];
+      const limit = Math.max(1, Number(payload.limit || 3));
+      const posts = textos.slice(0, limit);
+
+      if (!posts.length) {
+        sendJson(response, 400, { error: "Nenhum post foi informado para envio." });
+        return;
+      }
+
+      const results = [];
+
+      for (const texto of posts) {
+        results.push(await enviarMensagemWhatsapp(texto));
+      }
+
+      sendJson(response, 200, {
+        message: montarMensagemEnvio(posts, config.whatsappTargets),
+        results
+      });
+    } catch (error) {
+      sendJson(response, 500, { error: error.message });
+    }
+
+    return;
+  }
+
+  if (url.pathname === "/api/dispatch/offers" && request.method === "POST") {
+    try {
+      const payload = await readJsonBody(request);
+      const keyword = payload.keyword || "";
+      const listType = Number(payload.listType || 0);
+      const limit = Math.max(1, Number(payload.limit || 3));
+      const minRating = Number(payload.minRating || 4.0);
+      const produtos = await buscarProdutos({ keyword, listType });
+      const posts = montarTopDoDia(produtos, { limit, minRating }).map(gerarPost);
+      const results = [];
+
+      if (!posts.length) {
+        sendJson(response, 400, { error: "Nenhuma oferta passou pelos filtros." });
+        return;
+      }
+
+      for (const post of posts) {
+        results.push(await enviarMensagemWhatsapp(post));
+      }
+
+      sendJson(response, 200, {
+        message: montarMensagemEnvio(posts, config.whatsappTargets),
+        totalFound: produtos.length,
+        totalFiltered: posts.length,
+        results
+      });
+    } catch (error) {
+      sendJson(response, 500, { error: error.message });
+    }
+
+    return;
+  }
+
+  if (url.pathname === "/api/whatsapp/status" && request.method === "GET") {
+    try {
+      sendJson(response, 200, await getWhatsappStatus());
+    } catch (error) {
+      sendJson(response, 500, { error: error.message });
+    }
+
+    return;
+  }
+
+  if (url.pathname.startsWith("/api/")) {
+    sendJson(response, 404, { error: "Rota nao encontrada." });
+    return;
   }
 }
 
