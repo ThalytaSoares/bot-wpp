@@ -35,7 +35,7 @@ async function handleApi(request, response) {
     const keyword = url.searchParams.get("keyword") || "";
     const listType = Number(url.searchParams.get("listType") || 0);
     const limit = Number(url.searchParams.get("limit") || 20);
-    const minRating = Number(url.searchParams.get("minRating") || 4.5);
+    const minRating = Number(url.searchParams.get("minRating") || 4.0);
     const produtos = await buscarProdutos({ keyword, listType });
     const offers = montarTopDoDia(produtos, { limit, minRating }).map((produto) => ({
       ...produto,
@@ -45,6 +45,7 @@ async function handleApi(request, response) {
     sendJson(response, 200, {
       generatedAt: new Date().toISOString(),
       totalFound: produtos.length,
+      totalFiltered: offers.length,
       offers
     });
   } catch (error) {

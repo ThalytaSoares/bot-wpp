@@ -77,7 +77,7 @@ form.addEventListener("submit", async (event) => {
 
     currentOffers = data.offers || [];
     renderOffers(currentOffers);
-    setStatus(`Ranking gerado com ${data.totalFound} produtos encontrados.`);
+    setStatus(`${data.totalFound} encontrados, ${data.totalFiltered} passaram pelos filtros.`);
 
     if (currentOffers[0]) {
       postText.value = currentOffers[0].post;
