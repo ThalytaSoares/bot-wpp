@@ -4,8 +4,8 @@ import { existsSync } from "node:fs";
 import { extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
 import { config } from "./config.js";
-import { buscarProdutos } from "./shopee.js";
 import { analisarMercado, gerarPost, montarTopDoDia } from "./ranking.js";
+import { buscarProdutosComExpansao } from "./search-expansion.js";
 import {
   enviarMensagemWhatsapp,
   getWhatsappStatus,
@@ -66,7 +66,8 @@ async function handleApi(request, response) {
       const listType = Number(url.searchParams.get("listType") || 0);
       const limit = Number(url.searchParams.get("limit") || 20);
       const minRating = Number(url.searchParams.get("minRating") || 4.0);
-      const produtos = await buscarProdutos({ keyword, listType });
+      const expandSearch = url.searchParams.get("expandSearch") === "on";
+      const { terms, produtos } = await buscarProdutosComExpansao({ keyword, listType, expandSearch });
       const offers = montarTopDoDia(produtos, { limit, minRating }).map((produto) => ({
         ...produto,
         post: gerarPost(produto)
@@ -74,6 +75,7 @@ async function handleApi(request, response) {
 
       sendJson(response, 200, {
         generatedAt: new Date().toISOString(),
+        searchTerms: terms,
         totalFound: produtos.length,
         totalFiltered: offers.length,
         offers
@@ -100,12 +102,14 @@ async function handleApi(request, response) {
       const minRating = Number(url.searchParams.get("minRating") || 4.0);
       const minSales = Number(url.searchParams.get("minSales") || 20);
       const onlyExtraCommission = url.searchParams.get("onlyExtraCommission") === "on";
-      const produtos = await buscarProdutos({
+      const expandSearch = url.searchParams.get("expandSearch") === "on";
+      const { terms, produtos } = await buscarProdutosComExpansao({
         keyword,
         listType: 0,
         sortType: sortTypeByOrder[orderBy] || 2,
         limit: Math.max(limit, 20),
-        isAMSOffer: onlyExtraCommission ? true : undefined
+        isAMSOffer: onlyExtraCommission ? true : undefined,
+        expandSearch
       });
       const offers = analisarMercado(produtos, {
         limit,
@@ -119,6 +123,7 @@ async function handleApi(request, response) {
 
       sendJson(response, 200, {
         generatedAt: new Date().toISOString(),
+        searchTerms: terms,
         totalFound: produtos.length,
         totalFiltered: offers.length,
         offers
@@ -184,7 +189,11 @@ async function handleApi(request, response) {
       const listType = Number(payload.listType || 0);
       const limit = Math.max(1, Number(payload.limit || 3));
       const minRating = Number(payload.minRating || 4.0);
-      const produtos = await buscarProdutos({ keyword, listType });
+      const { produtos } = await buscarProdutosComExpansao({
+        keyword,
+        listType,
+        expandSearch: payload.expandSearch === true
+      });
       const posts = montarTopDoDia(produtos, { limit, minRating }).map(gerarPost);
       const results = [];
 

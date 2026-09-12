@@ -196,14 +196,14 @@ h2 {
 
 .controls {
   display: grid;
-  grid-template-columns: minmax(220px, 1fr) 130px 110px 132px;
+  grid-template-columns: minmax(220px, 1fr) 130px 110px 150px 132px;
   gap: 12px;
   align-items: end;
 }
 
 .market-controls {
   display: grid;
-  grid-template-columns: minmax(220px, 1fr) 120px 120px 95px 170px 130px 116px;
+  grid-template-columns: minmax(220px, 1fr) 120px 120px 95px 170px 130px 150px 116px;
   gap: 12px;
   align-items: end;
 }
@@ -483,7 +483,7 @@ textarea {
 
 .schedule-fields {
   display: grid;
-  grid-template-columns: 130px minmax(260px, 1fr) 92px;
+  grid-template-columns: 130px minmax(260px, 1fr) 92px 150px;
   gap: 12px;
   min-width: 0;
 }

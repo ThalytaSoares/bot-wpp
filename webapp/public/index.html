@@ -52,6 +52,11 @@
               <input id="limit" name="limit" type="number" min="1" max="50" step="1" value="20" />
             </label>
 
+            <label class="check-control">
+              <input name="expandSearch" type="checkbox" checked />
+              Busca expandida
+            </label>
+
             <button type="submit">Buscar Top</button>
           </form>
         </section>
@@ -123,6 +128,11 @@
             <label class="check-control">
               <input name="onlyExtraCommission" type="checkbox" />
               Comissão extra
+            </label>
+
+            <label class="check-control">
+              <input name="expandSearch" type="checkbox" checked />
+              Busca expandida
             </label>
 
             <button type="submit">Analisar</button>
@@ -197,6 +207,6 @@
       </article>
     </template>
 
-    <script src="/app.js?v=20260912-schedules-ui" type="module"></script>
+    <script src="/app.js?v=20260912-expanded-search" type="module"></script>
   </body>
 </html>

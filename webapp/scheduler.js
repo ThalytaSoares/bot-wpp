@@ -1,8 +1,8 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { config } from "./config.js";
-import { buscarProdutos } from "./shopee.js";
 import { gerarPost, montarTopDoDia } from "./ranking.js";
+import { buscarProdutosComExpansao } from "./search-expansion.js";
 import { enviarMensagemWhatsapp } from "./whatsapp.js";
 import { carregarDestinosWhatsapp } from "./targets.js";
 
@@ -14,6 +14,7 @@ const defaultSchedules = [
     enabled: true,
     time: "10:00",
     keyword: "achadinhos shopee dentistas",
+    expandSearch: true,
     limit: 3,
     minRating: 4.0,
     lastRunDate: ""
@@ -23,6 +24,7 @@ const defaultSchedules = [
     enabled: true,
     time: "20:00",
     keyword: "ofertas do dia dentistas",
+    expandSearch: true,
     limit: 3,
     minRating: 4.0,
     lastRunDate: ""
@@ -70,6 +72,7 @@ function normalizeSchedule(schedule, index) {
     enabled: schedule.enabled !== false,
     time: String(schedule.time || "10:00").slice(0, 5),
     keyword: String(schedule.keyword || "").trim(),
+    expandSearch: schedule.expandSearch !== false,
     limit: Math.max(1, Number(schedule.limit || 3)),
     minRating: Number(schedule.minRating || 4.0),
     lastRunDate: schedule.lastRunDate || ""
@@ -104,7 +107,11 @@ export async function salvarAgendamentos(schedules) {
 }
 
 async function executarAgendamento(schedule) {
-  const produtos = await buscarProdutos({ keyword: schedule.keyword, listType: 0 });
+  const { terms, produtos } = await buscarProdutosComExpansao({
+    keyword: schedule.keyword,
+    listType: 0,
+    expandSearch: schedule.expandSearch
+  });
   const offers = montarTopDoDia(produtos, {
     limit: schedule.limit,
     minRating: schedule.minRating
@@ -124,6 +131,7 @@ async function executarAgendamento(schedule) {
   return {
     totalFound: produtos.length,
     totalFiltered: posts.length,
+    searchTerms: terms,
     offers: offers.map((offer) => ({
       itemId: offer.itemId,
       productName: offer.productName,
@@ -181,9 +189,11 @@ async function registrarExecucao(schedule, result, mode = "scheduled") {
     keyword: schedule.keyword,
     limit: schedule.limit,
     minRating: schedule.minRating,
+    expandSearch: schedule.expandSearch,
     targets,
     totalFound: result.totalFound,
     totalFiltered: result.totalFiltered,
+    searchTerms: result.searchTerms,
     offers: result.offers
   });
 }
@@ -197,6 +207,7 @@ async function registrarFalha(schedule, error, mode = "scheduled") {
     keyword: schedule.keyword,
     limit: schedule.limit,
     minRating: schedule.minRating,
+    expandSearch: schedule.expandSearch,
     targets: await carregarDestinosWhatsapp().catch(() => []),
     totalFound: 0,
     totalFiltered: 0,

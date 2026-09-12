@@ -35,6 +35,15 @@ function formatPercent(value) {
   return `${Math.round(Number(value || 0) * 100)}%`;
 }
 
+function formatSearchSummary(data, filterLabel) {
+  const terms = data.searchTerms || [];
+  const termsText = terms.length
+    ? ` ${terms.length} termo${terms.length === 1 ? "" : "s"} usado${terms.length === 1 ? "" : "s"}.`
+    : "";
+
+  return `${data.totalFound} encontrados, ${data.totalFiltered} passaram pelos ${filterLabel}.${termsText}`;
+}
+
 function activateTab(tabName) {
   for (const button of tabButtons) {
     button.classList.toggle("active", button.dataset.tab === tabName);
@@ -264,6 +273,8 @@ function renderSchedules(schedules = []) {
     const keyword = document.createElement("input");
     const limitLabel = document.createElement("label");
     const limit = document.createElement("input");
+    const expandLabel = document.createElement("label");
+    const expand = document.createElement("input");
     const meta = document.createElement("div");
     const fields = document.createElement("div");
     const actions = document.createElement("div");
@@ -300,6 +311,13 @@ function renderSchedules(schedules = []) {
     limit.value = schedule.limit || 3;
     limitLabel.appendChild(limit);
 
+    expandLabel.textContent = "Busca expandida";
+    expand.type = "checkbox";
+    expand.name = "expandSearch";
+    expand.checked = schedule.expandSearch !== false;
+    expandLabel.className = "check-control";
+    expandLabel.prepend(expand);
+
     runButton.type = "button";
     runButton.className = "run-schedule";
     runButton.textContent = "Disparar agora";
@@ -329,7 +347,7 @@ function renderSchedules(schedules = []) {
     });
 
     meta.append(enabledLabel);
-    fields.append(timeLabel, keywordLabel, limitLabel);
+    fields.append(timeLabel, keywordLabel, limitLabel, expandLabel);
     actions.append(runButton);
     row.append(meta, fields, actions);
     schedulesList.appendChild(row);
@@ -473,7 +491,7 @@ form.addEventListener("submit", async (event) => {
 
     currentOffers = data.offers || [];
     renderOffers(currentOffers);
-    setStatus(`${data.totalFound} encontrados, ${data.totalFiltered} passaram pelos filtros.`);
+    setStatus(formatSearchSummary(data, "filtros"));
 
     if (currentOffers[0]) {
       postText.value = currentOffers[0].post;
@@ -502,7 +520,7 @@ marketForm.addEventListener("submit", async (event) => {
 
     marketOffers = data.offers || [];
     renderMarketOffers(marketOffers);
-    setStatus(`${data.totalFound} encontrados, ${data.totalFiltered} passaram pelos critérios.`);
+    setStatus(formatSearchSummary(data, "critérios"));
   } catch (error) {
     marketOffers = [];
     renderMarketOffers([]);
@@ -646,6 +664,7 @@ saveSchedules.addEventListener("click", async () => {
     enabled: row.querySelector('[name="enabled"]').checked,
     time: row.querySelector('[name="time"]').value,
     keyword: row.querySelector('[name="keyword"]').value,
+    expandSearch: row.querySelector('[name="expandSearch"]').checked,
     limit: Number(row.querySelector('[name="limit"]').value || 3),
     minRating: 4.0
   }));
