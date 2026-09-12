@@ -241,7 +241,10 @@ async function handleApi(request, response) {
     return;
   }
 
-  if (url.pathname === "/api/schedules/check" && request.method === "POST") {
+  if (
+    url.pathname === "/api/schedules/check" &&
+    (request.method === "GET" || request.method === "POST")
+  ) {
     try {
       await verificarAgendamentos();
       sendJson(response, 200, {
