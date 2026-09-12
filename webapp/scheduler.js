@@ -170,6 +170,58 @@ async function registrarHistoricoDisparo(entry) {
   );
 }
 
+async function registrarExecucao(schedule, result, mode = "scheduled") {
+  const targets = await carregarDestinosWhatsapp();
+
+  await registrarHistoricoDisparo({
+    scheduleId: schedule.id,
+    status: "success",
+    mode,
+    scheduledTime: schedule.time,
+    keyword: schedule.keyword,
+    limit: schedule.limit,
+    minRating: schedule.minRating,
+    targets,
+    totalFound: result.totalFound,
+    totalFiltered: result.totalFiltered,
+    offers: result.offers
+  });
+}
+
+async function registrarFalha(schedule, error, mode = "scheduled") {
+  await registrarHistoricoDisparo({
+    scheduleId: schedule.id,
+    status: "error",
+    mode,
+    scheduledTime: schedule.time,
+    keyword: schedule.keyword,
+    limit: schedule.limit,
+    minRating: schedule.minRating,
+    targets: await carregarDestinosWhatsapp().catch(() => []),
+    totalFound: 0,
+    totalFiltered: 0,
+    offers: [],
+    error: error.message
+  });
+}
+
+export async function executarAgendamentoManual(scheduleId) {
+  const schedules = await carregarAgendamentos();
+  const schedule = schedules.find((item) => item.id === scheduleId);
+
+  if (!schedule) {
+    throw new Error("Agendamento nao encontrado.");
+  }
+
+  const result = await executarAgendamento(schedule);
+  await registrarExecucao(schedule, result, "manual");
+
+  return {
+    schedule,
+    ...result
+  };
+}
+
 export async function verificarAgendamentos() {
   if (isRunning) {
     return;
@@ -189,38 +241,13 @@ export async function verificarAgendamentos() {
     try {
       console.log(`Executando agendamento ${schedule.id}: ${schedule.keyword}`);
       const result = await executarAgendamento(schedule);
-      const targets = await carregarDestinosWhatsapp();
-
-      await registrarHistoricoDisparo({
-        scheduleId: schedule.id,
-        status: "success",
-        scheduledTime: schedule.time,
-        keyword: schedule.keyword,
-        limit: schedule.limit,
-        minRating: schedule.minRating,
-        targets,
-        totalFound: result.totalFound,
-        totalFiltered: result.totalFiltered,
-        offers: result.offers
-      });
+      await registrarExecucao(schedule, result);
 
       console.log(
         `Agendamento ${schedule.id} enviado: ${result.totalFiltered}/${result.totalFound} ofertas.`
       );
     } catch (error) {
-      await registrarHistoricoDisparo({
-        scheduleId: schedule.id,
-        status: "error",
-        scheduledTime: schedule.time,
-        keyword: schedule.keyword,
-        limit: schedule.limit,
-        minRating: schedule.minRating,
-        targets: await carregarDestinosWhatsapp().catch(() => []),
-        totalFound: 0,
-        totalFiltered: 0,
-        offers: [],
-        error: error.message
-      });
+      await registrarFalha(schedule, error);
 
       console.error(`Erro no agendamento ${schedule.id}:`, error);
     } finally {

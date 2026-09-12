@@ -159,6 +159,7 @@ function renderSchedules(schedules = []) {
     const keyword = document.createElement("input");
     const limitLabel = document.createElement("label");
     const limit = document.createElement("input");
+    const runButton = document.createElement("button");
 
     row.className = "schedule-row";
     row.dataset.id = schedule.id;
@@ -188,7 +189,35 @@ function renderSchedules(schedules = []) {
     limit.value = schedule.limit || 3;
     limitLabel.appendChild(limit);
 
-    row.append(enabledLabel, timeLabel, keywordLabel, limitLabel);
+    runButton.type = "button";
+    runButton.className = "run-schedule";
+    runButton.textContent = "Disparar agora";
+    runButton.addEventListener("click", async () => {
+      setStatus(`Disparando agendamento "${keyword.value}" agora...`);
+
+      try {
+        const response = await fetch("/api/schedules/run", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ scheduleId: row.dataset.id })
+        });
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || "Nao foi possivel disparar o agendamento.");
+        }
+
+        setStatus(data.message);
+        loadScheduleHistory();
+      } catch (error) {
+        setStatus(error.message, "error");
+        loadScheduleHistory();
+      }
+    });
+
+    row.append(enabledLabel, timeLabel, keywordLabel, limitLabel, runButton);
     schedulesList.appendChild(row);
   }
 }

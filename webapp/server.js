@@ -15,6 +15,7 @@ import { carregarDestinosWhatsapp, salvarDestinosWhatsapp } from "./targets.js";
 import {
   carregarHistoricoDisparos,
   carregarAgendamentos,
+  executarAgendamentoManual,
   iniciarAgendador,
   salvarAgendamentos,
   verificarAgendamentos
@@ -266,6 +267,24 @@ async function handleApi(request, response) {
         message: "Agendamentos salvos.",
         timezone: config.timezone,
         schedules
+      });
+    } catch (error) {
+      sendJson(response, 500, { error: error.message });
+    }
+
+    return;
+  }
+
+  if (url.pathname === "/api/schedules/run" && request.method === "POST") {
+    try {
+      const payload = await readJsonBody(request);
+      const result = await executarAgendamentoManual(payload.scheduleId);
+      const destinos = await getDestinosEnvio();
+
+      sendJson(response, 200, {
+        message: montarMensagemEnvio(result.offers.map((offer) => offer.productName), destinos),
+        totalFound: result.totalFound,
+        totalFiltered: result.totalFiltered
       });
     } catch (error) {
       sendJson(response, 500, { error: error.message });
