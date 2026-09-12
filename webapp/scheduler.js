@@ -31,6 +31,19 @@ const defaultSchedules = [
 
 let isRunning = false;
 
+function toMinutes(time) {
+  const [hours, minutes] = String(time || "00:00").split(":").map(Number);
+  return hours * 60 + minutes;
+}
+
+function isScheduleDue(schedule, now) {
+  const scheduledMinutes = toMinutes(schedule.time);
+  const nowMinutes = toMinutes(now.time);
+  const minutesLate = nowMinutes - scheduledMinutes;
+
+  return minutesLate >= 0 && minutesLate <= 15;
+}
+
 function getNowParts() {
   const formatter = new Intl.DateTimeFormat("en-CA", {
     timeZone: config.timezone,
@@ -167,7 +180,7 @@ export async function verificarAgendamentos() {
   let changed = false;
 
   for (const schedule of schedules) {
-    if (!schedule.enabled || schedule.time !== now.time || schedule.lastRunDate === now.date) {
+    if (!schedule.enabled || !isScheduleDue(schedule, now) || schedule.lastRunDate === now.date) {
       continue;
     }
 

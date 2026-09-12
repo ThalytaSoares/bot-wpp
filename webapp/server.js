@@ -16,7 +16,8 @@ import {
   carregarHistoricoDisparos,
   carregarAgendamentos,
   iniciarAgendador,
-  salvarAgendamentos
+  salvarAgendamentos,
+  verificarAgendamentos
 } from "./scheduler.js";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
@@ -240,6 +241,19 @@ async function handleApi(request, response) {
     return;
   }
 
+  if (url.pathname === "/api/schedules/check" && request.method === "POST") {
+    try {
+      await verificarAgendamentos();
+      sendJson(response, 200, {
+        message: "Agendamentos verificados."
+      });
+    } catch (error) {
+      sendJson(response, 500, { error: error.message });
+    }
+
+    return;
+  }
+
   if (url.pathname === "/api/schedules" && request.method === "POST") {
     try {
       const payload = await readJsonBody(request);
@@ -294,4 +308,7 @@ const server = http.createServer(async (request, response) => {
 server.listen(config.port, () => {
   console.log(`Hub Afiliados Shopee rodando em http://localhost:${config.port}`);
   iniciarAgendador();
+  verificarAgendamentos().catch((error) => {
+    console.error("Erro ao verificar agendamentos na inicializacao:", error);
+  });
 });
