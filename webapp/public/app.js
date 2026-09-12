@@ -264,10 +264,16 @@ function renderSchedules(schedules = []) {
     const keyword = document.createElement("input");
     const limitLabel = document.createElement("label");
     const limit = document.createElement("input");
+    const meta = document.createElement("div");
+    const fields = document.createElement("div");
+    const actions = document.createElement("div");
     const runButton = document.createElement("button");
 
     row.className = "schedule-row";
     row.dataset.id = schedule.id;
+    meta.className = "schedule-meta";
+    fields.className = "schedule-fields";
+    actions.className = "schedule-actions";
 
     enabledLabel.textContent = "Ativo";
     enabled.type = "checkbox";
@@ -322,7 +328,10 @@ function renderSchedules(schedules = []) {
       }
     });
 
-    row.append(enabledLabel, timeLabel, keywordLabel, limitLabel, runButton);
+    meta.append(enabledLabel);
+    fields.append(timeLabel, keywordLabel, limitLabel);
+    actions.append(runButton);
+    row.append(meta, fields, actions);
     schedulesList.appendChild(row);
   }
 }
