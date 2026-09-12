@@ -5,7 +5,7 @@ import { extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
 import { config } from "./config.js";
 import { buscarProdutos } from "./shopee.js";
-import { gerarPost, montarTopDoDia } from "./ranking.js";
+import { analisarMercado, gerarPost, montarTopDoDia } from "./ranking.js";
 import {
   enviarMensagemWhatsapp,
   getWhatsappStatus,
@@ -68,6 +68,51 @@ async function handleApi(request, response) {
       const minRating = Number(url.searchParams.get("minRating") || 4.0);
       const produtos = await buscarProdutos({ keyword, listType });
       const offers = montarTopDoDia(produtos, { limit, minRating }).map((produto) => ({
+        ...produto,
+        post: gerarPost(produto)
+      }));
+
+      sendJson(response, 200, {
+        generatedAt: new Date().toISOString(),
+        totalFound: produtos.length,
+        totalFiltered: offers.length,
+        offers
+      });
+    } catch (error) {
+      sendJson(response, 500, { error: error.message });
+    }
+
+    return;
+  }
+
+  if (url.pathname === "/api/market" && request.method === "GET") {
+    try {
+      const keyword = url.searchParams.get("keyword") || "";
+      const orderBy = url.searchParams.get("orderBy") || "opportunity";
+      const sortTypeByOrder = {
+        sales: 2,
+        commission: 5,
+        price: 4,
+        rating: 2,
+        opportunity: 2
+      };
+      const limit = Number(url.searchParams.get("limit") || 20);
+      const minRating = Number(url.searchParams.get("minRating") || 4.0);
+      const minSales = Number(url.searchParams.get("minSales") || 20);
+      const onlyExtraCommission = url.searchParams.get("onlyExtraCommission") === "on";
+      const produtos = await buscarProdutos({
+        keyword,
+        listType: 0,
+        sortType: sortTypeByOrder[orderBy] || 2,
+        limit: Math.max(limit, 20),
+        isAMSOffer: onlyExtraCommission ? true : undefined
+      });
+      const offers = analisarMercado(produtos, {
+        limit,
+        minRating,
+        minSales,
+        orderBy
+      }).map((produto) => ({
         ...produto,
         post: gerarPost(produto)
       }));

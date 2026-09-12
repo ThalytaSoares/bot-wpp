@@ -6,6 +6,9 @@ const postText = document.querySelector("#postText");
 const copyPost = document.querySelector("#copyPost");
 const sendPost = document.querySelector("#sendPost");
 const sendTop = document.querySelector("#sendTop");
+const marketForm = document.querySelector("#marketForm");
+const marketList = document.querySelector("#marketList");
+const marketCount = document.querySelector("#marketCount");
 const connectWhatsapp = document.querySelector("#connectWhatsapp");
 const loadGroups = document.querySelector("#loadGroups");
 const saveTargets = document.querySelector("#saveTargets");
@@ -20,6 +23,7 @@ const tabButtons = document.querySelectorAll(".tab-button");
 const tabPanels = document.querySelectorAll(".tab-panel");
 
 let currentOffers = [];
+let marketOffers = [];
 let whatsappStatusTimer;
 
 function setStatus(message, type = "info") {
@@ -80,6 +84,107 @@ function renderOffers(offers) {
     link.href = offer.offerLink;
 
     offersList.appendChild(node);
+  }
+}
+
+function getPrice(offer) {
+  return offer.price || offer.priceMin || offer.priceMax || "";
+}
+
+function renderMarketOffers(offers) {
+  marketList.innerHTML = "";
+  marketCount.textContent = `${offers.length} oferta${offers.length === 1 ? "" : "s"}`;
+
+  if (!offers.length) {
+    marketList.innerHTML = '<p class="shop">Nenhum produto passou pelos critérios da pesquisa.</p>';
+    return;
+  }
+
+  for (const [index, offer] of offers.entries()) {
+    const card = document.createElement("article");
+    const image = document.createElement("img");
+    const info = document.createElement("div");
+    const rank = document.createElement("div");
+    const title = document.createElement("h3");
+    const shop = document.createElement("p");
+    const metrics = document.createElement("div");
+    const actions = document.createElement("div");
+    const postButton = document.createElement("button");
+    const sendButton = document.createElement("button");
+    const copyButton = document.createElement("button");
+    const openLink = document.createElement("a");
+
+    card.className = "market-card";
+    image.src = offer.imageUrl || "";
+    image.alt = offer.productName || "Produto Shopee";
+    info.className = "market-info";
+    rank.className = "offer-rank";
+    rank.textContent = index === 0 ? "Melhor oportunidade" : `#${index + 1}`;
+    title.textContent = offer.productName || "Produto Shopee";
+    shop.className = "shop";
+    shop.textContent = offer.shopName || "Loja Shopee";
+    metrics.className = "metrics";
+    metrics.innerHTML = [
+      `<span class="metric score">Score ${offer.marketScore || offer.score}</span>`,
+      `<span class="metric">R$ ${getPrice(offer)}</span>`,
+      `<span class="metric">${offer.sales || 0} vendas</span>`,
+      `<span class="metric">⭐ ${offer.ratingStar || 0}</span>`,
+      `<span class="metric">Comissão ${formatPercent(offer.commissionRate)}</span>`,
+      offer.priceDiscountRate ? `<span class="metric">${offer.priceDiscountRate}% off</span>` : ""
+    ].filter(Boolean).join("");
+
+    actions.className = "market-actions";
+    postButton.type = "button";
+    postButton.textContent = "Gerar post";
+    postButton.addEventListener("click", () => {
+      postText.value = offer.post;
+      activateTab("manual");
+      setStatus("Post gerado na aba Manual para revisão.");
+    });
+
+    sendButton.type = "button";
+    sendButton.className = "send-market-offer";
+    sendButton.textContent = "Enviar WhatsApp";
+    sendButton.addEventListener("click", async () => {
+      setStatus(`Enviando "${offer.productName}" para o WhatsApp...`);
+
+      try {
+        const response = await fetch("/api/whatsapp", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ texto: offer.post })
+        });
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || "Nao foi possivel enviar a oferta para o WhatsApp.");
+        }
+
+        setStatus(data.message);
+      } catch (error) {
+        setStatus(error.message, "error");
+      }
+    });
+
+    copyButton.type = "button";
+    copyButton.textContent = "Copiar link";
+    copyButton.addEventListener("click", async () => {
+      await navigator.clipboard.writeText(offer.offerLink);
+      setStatus("Link copiado.");
+    });
+
+    openLink.className = "open-offer";
+    openLink.href = offer.offerLink;
+    openLink.target = "_blank";
+    openLink.rel = "noreferrer";
+    openLink.textContent = "Abrir oferta";
+
+    info.append(rank, title, shop, metrics);
+    actions.append(postButton, sendButton, copyButton, openLink);
+    card.append(image, info, actions);
+    marketList.appendChild(card);
   }
 }
 
@@ -367,6 +472,31 @@ form.addEventListener("submit", async (event) => {
   } catch (error) {
     currentOffers = [];
     renderOffers([]);
+    setStatus(error.message, "error");
+  }
+});
+
+marketForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+
+  const params = new URLSearchParams(new FormData(marketForm));
+  setStatus("Analisando produtos na Shopee...");
+  marketList.innerHTML = "";
+
+  try {
+    const response = await fetch(`/api/market?${params.toString()}`);
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || "Nao foi possivel analisar os produtos.");
+    }
+
+    marketOffers = data.offers || [];
+    renderMarketOffers(marketOffers);
+    setStatus(`${data.totalFound} encontrados, ${data.totalFiltered} passaram pelos critérios.`);
+  } catch (error) {
+    marketOffers = [];
+    renderMarketOffers([]);
     setStatus(error.message, "error");
   }
 });

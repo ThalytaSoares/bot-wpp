@@ -3,26 +3,63 @@ import { config, assertShopeeConfig } from "./config.js";
 
 const SHOPEE_URL = "https://open-api.affiliate.shopee.com.br/graphql";
 
-export async function buscarProdutos({ keyword = "", listType = 0 } = {}) {
+export async function buscarProdutos({
+  keyword = "",
+  listType = 0,
+  sortType,
+  page = 1,
+  limit = 20,
+  isAMSOffer,
+  isKeySeller
+} = {}) {
   assertShopeeConfig();
 
   const safeKeyword = String(keyword).replaceAll('"', '\\"');
+  const args = [
+    `keyword: "${safeKeyword}"`,
+    `listType: ${Number(listType)}`,
+    `page: ${Math.max(1, Number(page || 1))}`,
+    `limit: ${Math.max(1, Number(limit || 20))}`
+  ];
+
+  if (sortType) {
+    args.push(`sortType: ${Number(sortType)}`);
+  }
+
+  if (typeof isAMSOffer === "boolean") {
+    args.push(`isAMSOffer: ${isAMSOffer}`);
+  }
+
+  if (typeof isKeySeller === "boolean") {
+    args.push(`isKeySeller: ${isKeySeller}`);
+  }
+
   const query = `
     {
       productOfferV2(
-        keyword: "${safeKeyword}",
-        listType: ${Number(listType)}
+        ${args.join(",\n        ")}
       ) {
         nodes {
           itemId
           productName
+          productLink
           price
+          priceMin
+          priceMax
+          priceDiscountRate
           sales
           ratingStar
           commissionRate
+          sellerCommissionRate
+          shopeeCommissionRate
+          commission
           imageUrl
           offerLink
+          shopId
           shopName
+          shopType
+          periodStartTime
+          periodEndTime
         }
       }
     }
