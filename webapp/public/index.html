@@ -26,6 +26,15 @@
       <section class="status" id="status" aria-live="polite">
         Configure a busca e gere o ranking.
       </section>
+      <section class="progress-panel" id="progressPanel" aria-live="polite" hidden>
+        <div class="progress-title">
+          <span id="progressLabel">Processando...</span>
+          <strong id="progressPercent">0%</strong>
+        </div>
+        <div class="progress-track">
+          <div id="progressBar" class="progress-bar"></div>
+        </div>
+      </section>
 
       <section class="tab-panel active" data-panel="manual">
         <section class="toolbar panel" aria-label="Busca de ofertas">
@@ -214,6 +223,6 @@
       </article>
     </template>
 
-    <script src="/app.js?v=20260913-select-all-groups" type="module"></script>
+    <script src="/app.js?v=20260913-progress" type="module"></script>
   </body>
 </html>

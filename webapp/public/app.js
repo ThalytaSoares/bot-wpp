@@ -1,5 +1,9 @@
 const form = document.querySelector("#searchForm");
 const statusEl = document.querySelector("#status");
+const progressPanel = document.querySelector("#progressPanel");
+const progressLabel = document.querySelector("#progressLabel");
+const progressPercent = document.querySelector("#progressPercent");
+const progressBar = document.querySelector("#progressBar");
 const offersList = document.querySelector("#offersList");
 const countEl = document.querySelector("#count");
 const postText = document.querySelector("#postText");
@@ -27,10 +31,85 @@ const tabPanels = document.querySelectorAll(".tab-panel");
 let currentOffers = [];
 let marketOffers = [];
 let whatsappStatusTimer;
+let progressTimer;
 
 function setStatus(message, type = "info") {
   statusEl.textContent = message;
   statusEl.classList.toggle("error", type === "error");
+}
+
+function setProgress(message, percent = 0, { indeterminate = false } = {}) {
+  progressPanel.hidden = false;
+  progressPanel.classList.toggle("indeterminate", indeterminate);
+  progressLabel.textContent = message;
+  progressPercent.textContent = indeterminate ? "..." : `${Math.round(percent)}%`;
+  progressBar.style.width = indeterminate ? "45%" : `${Math.max(0, Math.min(100, percent))}%`;
+}
+
+function startProgress(message, { indeterminate = true, start = 12, max = 88 } = {}) {
+  let current = start;
+
+  clearInterval(progressTimer);
+  setProgress(message, current, { indeterminate });
+
+  if (!indeterminate) {
+    progressTimer = setInterval(() => {
+      current = Math.min(max, current + Math.max(1, (max - current) * 0.16));
+      setProgress(message, current);
+    }, 500);
+  }
+}
+
+function finishProgress(message = "Concluido.") {
+  clearInterval(progressTimer);
+  setProgress(message, 100);
+
+  setTimeout(() => {
+    progressPanel.hidden = true;
+    progressBar.style.width = "0%";
+  }, 900);
+}
+
+function failProgress(message = "Falhou.") {
+  clearInterval(progressTimer);
+  progressPanel.classList.remove("indeterminate");
+  progressLabel.textContent = message;
+  progressPercent.textContent = "erro";
+  progressBar.style.width = "100%";
+  progressBar.classList.add("progress-error");
+
+  setTimeout(() => {
+    progressPanel.hidden = true;
+    progressBar.classList.remove("progress-error");
+    progressBar.style.width = "0%";
+  }, 1800);
+}
+
+async function withProgress(button, loadingText, task) {
+  const originalText = button?.textContent;
+
+  if (button) {
+    button.disabled = true;
+    button.classList.add("loading");
+    button.textContent = loadingText;
+  }
+
+  startProgress(loadingText, { indeterminate: false });
+
+  try {
+    const result = await task();
+    finishProgress("Concluido.");
+    return result;
+  } catch (error) {
+    failProgress("Falhou.");
+    throw error;
+  } finally {
+    if (button) {
+      button.disabled = false;
+      button.classList.remove("loading");
+      button.textContent = originalText;
+    }
+  }
 }
 
 function formatPercent(value) {
@@ -160,18 +239,22 @@ function renderMarketOffers(offers) {
       setStatus(`Enviando "${offer.productName}" para o WhatsApp...`);
 
       try {
-        const response = await fetch("/api/whatsapp", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({ texto: offer.post })
-        });
-        const data = await response.json();
+        const data = await withProgress(sendButton, "Enviando oferta...", async () => {
+          const response = await fetch("/api/whatsapp", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ texto: offer.post })
+          });
+          const responseData = await response.json();
 
-        if (!response.ok) {
-          throw new Error(data.error || "Nao foi possivel enviar a oferta para o WhatsApp.");
-        }
+          if (!response.ok) {
+            throw new Error(responseData.error || "Nao foi possivel enviar a oferta para o WhatsApp.");
+          }
+
+          return responseData;
+        });
 
         setStatus(data.message);
       } catch (error) {
@@ -343,18 +426,22 @@ function renderSchedules(schedules = []) {
       setStatus(`Disparando agendamento "${keyword.value}" agora...`);
 
       try {
-        const response = await fetch("/api/schedules/run", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({ scheduleId: row.dataset.id })
-        });
-        const data = await response.json();
+        const data = await withProgress(runButton, "Disparando agora...", async () => {
+          const response = await fetch("/api/schedules/run", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ scheduleId: row.dataset.id })
+          });
+          const responseData = await response.json();
 
-        if (!response.ok) {
-          throw new Error(data.error || "Nao foi possivel disparar o agendamento.");
-        }
+          if (!response.ok) {
+            throw new Error(responseData.error || "Nao foi possivel disparar o agendamento.");
+          }
+
+          return responseData;
+        });
 
         setStatus(data.message);
         loadScheduleHistory();
@@ -495,17 +582,22 @@ form.addEventListener("submit", async (event) => {
   event.preventDefault();
 
   const params = new URLSearchParams(new FormData(form));
+  const submitButton = form.querySelector('button[type="submit"]');
   setStatus("Buscando ofertas na Shopee...");
   offersList.innerHTML = "";
   postText.value = "";
 
   try {
-    const response = await fetch(`/api/offers?${params.toString()}`);
-    const data = await response.json();
+    const data = await withProgress(submitButton, "Buscando ofertas...", async () => {
+      const response = await fetch(`/api/offers?${params.toString()}`);
+      const responseData = await response.json();
 
-    if (!response.ok) {
-      throw new Error(data.error || "Nao foi possivel buscar ofertas.");
-    }
+      if (!response.ok) {
+        throw new Error(responseData.error || "Nao foi possivel buscar ofertas.");
+      }
+
+      return responseData;
+    });
 
     currentOffers = data.offers || [];
     renderOffers(currentOffers);
@@ -525,16 +617,21 @@ marketForm.addEventListener("submit", async (event) => {
   event.preventDefault();
 
   const params = new URLSearchParams(new FormData(marketForm));
+  const submitButton = marketForm.querySelector('button[type="submit"]');
   setStatus("Analisando produtos na Shopee...");
   marketList.innerHTML = "";
 
   try {
-    const response = await fetch(`/api/market?${params.toString()}`);
-    const data = await response.json();
+    const data = await withProgress(submitButton, "Analisando produtos...", async () => {
+      const response = await fetch(`/api/market?${params.toString()}`);
+      const responseData = await response.json();
 
-    if (!response.ok) {
-      throw new Error(data.error || "Nao foi possivel analisar os produtos.");
-    }
+      if (!response.ok) {
+        throw new Error(responseData.error || "Nao foi possivel analisar os produtos.");
+      }
+
+      return responseData;
+    });
 
     marketOffers = data.offers || [];
     renderMarketOffers(marketOffers);
@@ -565,18 +662,22 @@ sendPost.addEventListener("click", async () => {
   setStatus("Enviando post para o WhatsApp...");
 
   try {
-    const response = await fetch("/api/whatsapp", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ texto: postText.value })
-    });
-    const data = await response.json();
+    const data = await withProgress(sendPost, "Enviando post...", async () => {
+      const response = await fetch("/api/whatsapp", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ texto: postText.value })
+      });
+      const responseData = await response.json();
 
-    if (!response.ok) {
-      throw new Error(data.error || "Nao foi possivel enviar para o WhatsApp.");
-    }
+      if (!response.ok) {
+        throw new Error(responseData.error || "Nao foi possivel enviar para o WhatsApp.");
+      }
+
+      return responseData;
+    });
 
     setStatus(data.message);
   } catch (error) {
@@ -593,21 +694,25 @@ sendTop.addEventListener("click", async () => {
   setStatus("Enviando Top 3 agora para o WhatsApp...");
 
   try {
-    const response = await fetch("/api/whatsapp/top", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        textos: currentOffers.map((offer) => offer.post),
-        limit: 3
-      })
-    });
-    const data = await response.json();
+    const data = await withProgress(sendTop, "Enviando Top 3...", async () => {
+      const response = await fetch("/api/whatsapp/top", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          textos: currentOffers.map((offer) => offer.post),
+          limit: 3
+        })
+      });
+      const responseData = await response.json();
 
-    if (!response.ok) {
-      throw new Error(data.error || "Nao foi possivel enviar o Top 3 para o WhatsApp.");
-    }
+      if (!response.ok) {
+        throw new Error(responseData.error || "Nao foi possivel enviar o Top 3 para o WhatsApp.");
+      }
+
+      return responseData;
+    });
 
     setStatus(data.message);
   } catch (error) {
@@ -619,12 +724,16 @@ loadGroups.addEventListener("click", async () => {
   setStatus("Buscando grupos do WhatsApp...");
 
   try {
-    const response = await fetch("/api/whatsapp/groups");
-    const data = await response.json();
+    const data = await withProgress(loadGroups, "Buscando grupos...", async () => {
+      const response = await fetch("/api/whatsapp/groups");
+      const responseData = await response.json();
 
-    if (!response.ok) {
-      throw new Error(data.error || "Nao foi possivel listar os grupos.");
-    }
+      if (!response.ok) {
+        throw new Error(responseData.error || "Nao foi possivel listar os grupos.");
+      }
+
+      return responseData;
+    });
 
     renderGroups(data.groups || [], data.targets || []);
     setStatus(`${(data.groups || []).length} grupos encontrados.`);
@@ -646,18 +755,22 @@ saveTargets.addEventListener("click", async () => {
   setStatus("Salvando destinos do WhatsApp...");
 
   try {
-    const response = await fetch("/api/whatsapp/targets", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ targets })
-    });
-    const data = await response.json();
+    const data = await withProgress(saveTargets, "Salvando grupos...", async () => {
+      const response = await fetch("/api/whatsapp/targets", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ targets })
+      });
+      const responseData = await response.json();
 
-    if (!response.ok) {
-      throw new Error(data.error || "Nao foi possivel salvar os destinos.");
-    }
+      if (!response.ok) {
+        throw new Error(responseData.error || "Nao foi possivel salvar os destinos.");
+      }
+
+      return responseData;
+    });
 
     setStatus(data.message);
   } catch (error) {
@@ -679,7 +792,9 @@ connectWhatsapp.addEventListener("click", async () => {
   setStatus("Preparando conexao com o WhatsApp...");
 
   try {
-    const data = await atualizarStatusWhatsapp({ keepPolling: true });
+    const data = await withProgress(connectWhatsapp, "Conectando...", () =>
+      atualizarStatusWhatsapp({ keepPolling: true })
+    );
     setStatus(data.state === "open" ? "WhatsApp conectado." : "Aguardando QR Code do WhatsApp.");
   } catch (error) {
     setStatus(error.message, "error");
@@ -700,18 +815,22 @@ saveSchedules.addEventListener("click", async () => {
   setStatus("Salvando agendamentos...");
 
   try {
-    const response = await fetch("/api/schedules", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ schedules })
-    });
-    const data = await response.json();
+    const data = await withProgress(saveSchedules, "Salvando agenda...", async () => {
+      const response = await fetch("/api/schedules", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ schedules })
+      });
+      const responseData = await response.json();
 
-    if (!response.ok) {
-      throw new Error(data.error || "Nao foi possivel salvar a agenda.");
-    }
+      if (!response.ok) {
+        throw new Error(responseData.error || "Nao foi possivel salvar a agenda.");
+      }
+
+      return responseData;
+    });
 
     renderSchedules(data.schedules || []);
     setStatus(data.message);
@@ -723,8 +842,13 @@ saveSchedules.addEventListener("click", async () => {
 
 loadHistory.addEventListener("click", async () => {
   setStatus("Atualizando historico de envios...");
-  await loadScheduleHistory();
-  setStatus("Historico atualizado.");
+
+  try {
+    await withProgress(loadHistory, "Atualizando historico...", loadScheduleHistory);
+    setStatus("Historico atualizado.");
+  } catch (error) {
+    setStatus(error.message, "error");
+  }
 });
 
 for (const button of tabButtons) {
