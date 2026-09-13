@@ -9,7 +9,6 @@ const countEl = document.querySelector("#count");
 const postText = document.querySelector("#postText");
 const copyPost = document.querySelector("#copyPost");
 const sendPost = document.querySelector("#sendPost");
-const sendTop = document.querySelector("#sendTop");
 const marketForm = document.querySelector("#marketForm");
 const marketList = document.querySelector("#marketList");
 const marketCount = document.querySelector("#marketCount");
@@ -225,16 +224,16 @@ function renderMarketOffers(offers) {
 
     actions.className = "market-actions";
     postButton.type = "button";
-    postButton.textContent = "Gerar post";
+    postButton.textContent = "Editar post";
     postButton.addEventListener("click", () => {
       postText.value = offer.post;
       activateTab("manual");
-      setStatus("Post gerado na aba Manual para revisão.");
+      setStatus("Post enviado para a aba Manual. Revise o texto antes de enviar.");
     });
 
     sendButton.type = "button";
     sendButton.className = "send-market-offer";
-    sendButton.textContent = "Enviar WhatsApp";
+    sendButton.textContent = "Enviar agora";
     sendButton.addEventListener("click", async () => {
       setStatus(`Enviando "${offer.productName}" para o WhatsApp...`);
 
@@ -421,7 +420,7 @@ function renderSchedules(schedules = []) {
 
     runButton.type = "button";
     runButton.className = "run-schedule";
-    runButton.textContent = "Disparar agora";
+    runButton.textContent = "Testar envio";
     runButton.addEventListener("click", async () => {
       setStatus(`Disparando agendamento "${keyword.value}" agora...`);
 
@@ -674,41 +673,6 @@ sendPost.addEventListener("click", async () => {
 
       if (!response.ok) {
         throw new Error(responseData.error || "Nao foi possivel enviar para o WhatsApp.");
-      }
-
-      return responseData;
-    });
-
-    setStatus(data.message);
-  } catch (error) {
-    setStatus(error.message, "error");
-  }
-});
-
-sendTop.addEventListener("click", async () => {
-  if (!currentOffers.length) {
-    setStatus("Busque ofertas antes de enviar o Top 3 agora.", "error");
-    return;
-  }
-
-  setStatus("Enviando Top 3 agora para o WhatsApp...");
-
-  try {
-    const data = await withProgress(sendTop, "Enviando Top 3...", async () => {
-      const response = await fetch("/api/whatsapp/top", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          textos: currentOffers.map((offer) => offer.post),
-          limit: 3
-        })
-      });
-      const responseData = await response.json();
-
-      if (!response.ok) {
-        throw new Error(responseData.error || "Nao foi possivel enviar o Top 3 para o WhatsApp.");
       }
 
       return responseData;

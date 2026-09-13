@@ -327,7 +327,6 @@ select:focus {
 
 #copyPost,
 #sendPost,
-#sendTop,
 #connectWhatsapp,
 #loadGroups,
 #saveTargets,
@@ -341,7 +340,6 @@ select:focus {
 
 #copyPost:hover,
 #sendPost:hover,
-#sendTop:hover,
 #connectWhatsapp:hover,
 #loadGroups:hover,
 #saveTargets:hover,
