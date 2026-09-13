@@ -78,10 +78,7 @@ button.loading {
 }
 
 .app-header {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 24px;
-  align-items: end;
+  display: block;
   margin-bottom: 20px;
   padding: 6px 2px;
 }
@@ -125,24 +122,6 @@ h2 {
 .header-copy,
 .groups-toolbar .shop {
   margin: 0;
-}
-
-.header-summary {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 8px;
-  max-width: 430px;
-}
-
-.header-summary span {
-  border: 1px solid rgba(238, 77, 45, 0.18);
-  border-radius: 999px;
-  padding: 8px 11px;
-  background: rgba(255, 255, 255, 0.72);
-  color: #8f2f1c;
-  font-size: 12px;
-  font-weight: 900;
 }
 
 .workspace-nav {
@@ -271,7 +250,7 @@ h2 {
 
 .tab-panel[data-panel="schedules"].active {
   display: grid;
-  grid-template-columns: minmax(480px, 0.95fr) minmax(420px, 1.05fr);
+  grid-template-columns: minmax(560px, 0.92fr) minmax(420px, 1.08fr);
   gap: 18px;
   align-items: start;
 }
@@ -662,16 +641,17 @@ textarea {
 
 .schedule-row {
   display: grid;
-  grid-template-columns: 96px minmax(0, 1fr) 142px;
-  gap: 14px;
-  align-items: end;
-  padding: 13px;
+  grid-template-columns: minmax(0, 1fr) 142px;
+  gap: 12px;
+  align-items: start;
+  padding: 14px;
 }
 
 .schedule-meta {
-  min-height: 44px;
+  grid-column: 1 / -1;
+  min-height: auto;
   display: flex;
-  align-items: end;
+  align-items: center;
 }
 
 .schedule-meta label {
@@ -686,7 +666,7 @@ textarea {
 
 .schedule-fields {
   display: grid;
-  grid-template-columns: 130px minmax(240px, 1fr) 86px 152px;
+  grid-template-columns: 120px minmax(0, 1fr) 80px;
   gap: 12px;
   min-width: 0;
 }
@@ -695,9 +675,16 @@ textarea {
   min-width: 0;
 }
 
+.schedule-fields .check-control {
+  grid-column: 1 / -1;
+  width: fit-content;
+  max-width: 100%;
+}
+
 .schedule-actions {
   display: grid;
   align-items: end;
+  align-self: end;
 }
 
 .history-error {
@@ -779,13 +766,8 @@ textarea {
 }
 
 @media (max-width: 920px) {
-  .app-header,
   .content {
     grid-template-columns: 1fr;
-  }
-
-  .header-summary {
-    justify-content: flex-start;
   }
 
   .post-panel {
@@ -819,11 +801,6 @@ textarea {
   h2 {
     font-size: 19px;
   }
-
-  .header-summary {
-    display: none;
-  }
-
   .tabs {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
