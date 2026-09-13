@@ -60,6 +60,14 @@ async function readJsonBody(request) {
 async function handleApi(request, response) {
   const url = new URL(request.url, `http://${request.headers.host}`);
 
+  if (url.pathname === "/api/health" && request.method === "GET") {
+    sendJson(response, 200, {
+      ok: true,
+      time: new Date().toISOString()
+    });
+    return;
+  }
+
   if (url.pathname === "/api/offers" && request.method === "GET") {
     try {
       const keyword = url.searchParams.get("keyword") || "";
@@ -301,12 +309,13 @@ async function handleApi(request, response) {
     (request.method === "GET" || request.method === "POST")
   ) {
     try {
-      await verificarAgendamentos();
+      const summary = await verificarAgendamentos();
       sendJson(response, 200, {
-        message: "Agendamentos verificados."
+        message: "Agendamentos verificados.",
+        ...summary
       });
     } catch (error) {
-      sendJson(response, 500, { error: error.message });
+      sendJson(response, 500, { error: String(error.message || error).slice(0, 500) });
     }
 
     return;

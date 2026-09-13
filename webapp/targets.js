@@ -1,8 +1,16 @@
 import { readFile, writeFile } from "node:fs/promises";
-import { resolve } from "node:path";
+import { isAbsolute, resolve } from "node:path";
 import { config } from "./config.js";
 
-const targetsPath = resolve(process.cwd(), config.whatsappTargetsFile);
+function resolveDataPath(path) {
+  if (isAbsolute(path)) {
+    return path;
+  }
+
+  return resolve(config.dataDir || process.cwd(), path);
+}
+
+const targetsPath = resolveDataPath(config.whatsappTargetsFile);
 
 function normalizeTargets(targets) {
   return [...new Set((targets || []).map((target) => String(target || "").trim()).filter(Boolean))];

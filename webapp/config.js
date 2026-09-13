@@ -39,11 +39,13 @@ export const config = {
   port: Number(process.env.PORT || 3000),
   shopeeAppId: process.env.SHOPEE_APP_ID || "",
   shopeeSecret: process.env.SHOPEE_SECRET || "",
+  dataDir: process.env.APP_DATA_DIR || "",
   whatsappAuthDir: process.env.WHATSAPP_AUTH_DIR || "auth_info_baileys",
   whatsappTargetsFile: process.env.WHATSAPP_TARGETS_FILE || "whatsapp-targets.json",
   schedulesFile: process.env.SCHEDULES_FILE || "schedules.json",
   dispatchHistoryFile: process.env.DISPATCH_HISTORY_FILE || "dispatch-history.json",
   timezone: process.env.APP_TIMEZONE || "America/Sao_Paulo",
+  printWhatsappQrTerminal: process.env.PRINT_WHATSAPP_QR_TERMINAL === "true",
   whatsappTargets: parseList(process.env.WHATSAPP_TARGETS || process.env.WHATSAPP_TO || "")
 };
 

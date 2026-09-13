@@ -1,13 +1,21 @@
 import { readFile, writeFile } from "node:fs/promises";
-import { resolve } from "node:path";
+import { isAbsolute, resolve } from "node:path";
 import { config } from "./config.js";
 import { gerarPost, montarTopDoDia } from "./ranking.js";
 import { buscarProdutosComExpansao } from "./search-expansion.js";
 import { enviarMensagemWhatsapp } from "./whatsapp.js";
 import { carregarDestinosWhatsapp } from "./targets.js";
 
-const schedulesPath = resolve(process.cwd(), config.schedulesFile);
-const historyPath = resolve(process.cwd(), config.dispatchHistoryFile);
+function resolveDataPath(path) {
+  if (isAbsolute(path)) {
+    return path;
+  }
+
+  return resolve(config.dataDir || process.cwd(), path);
+}
+
+const schedulesPath = resolveDataPath(config.schedulesFile);
+const historyPath = resolveDataPath(config.dispatchHistoryFile);
 const defaultSchedules = [
   {
     id: "manha-dentistas",
@@ -32,6 +40,10 @@ const defaultSchedules = [
 ];
 
 let isRunning = false;
+
+function compactErrorMessage(error) {
+  return String(error?.message || error || "Erro desconhecido").slice(0, 500);
+}
 
 function toMinutes(time) {
   const [hours, minutes] = String(time || "00:00").split(":").map(Number);
@@ -199,6 +211,8 @@ async function registrarExecucao(schedule, result, mode = "scheduled") {
 }
 
 async function registrarFalha(schedule, error, mode = "scheduled") {
+  const errorMessage = compactErrorMessage(error);
+
   await registrarHistoricoDisparo({
     scheduleId: schedule.id,
     status: "error",
@@ -212,7 +226,7 @@ async function registrarFalha(schedule, error, mode = "scheduled") {
     totalFound: 0,
     totalFiltered: 0,
     offers: [],
-    error: error.message
+    error: errorMessage
   });
 }
 
@@ -235,35 +249,73 @@ export async function executarAgendamentoManual(scheduleId) {
 
 export async function verificarAgendamentos() {
   if (isRunning) {
-    return;
+    return {
+      checkedAt: new Date().toISOString(),
+      timezone: config.timezone,
+      running: true,
+      due: 0,
+      sent: 0,
+      failed: 0,
+      skipped: 0,
+      results: []
+    };
   }
 
   const now = getNowParts();
   const schedules = await carregarAgendamentos();
   let changed = false;
 
+  const summary = {
+    checkedAt: new Date().toISOString(),
+    timezone: config.timezone,
+    due: 0,
+    sent: 0,
+    failed: 0,
+    skipped: schedules.length,
+    results: []
+  };
+
   for (const schedule of schedules) {
     if (!schedule.enabled || !isScheduleDue(schedule, now) || schedule.lastRunDate === now.date) {
       continue;
     }
 
+    summary.due += 1;
+    summary.skipped -= 1;
     isRunning = true;
 
     try {
       console.log(`Executando agendamento ${schedule.id}: ${schedule.keyword}`);
       const result = await executarAgendamento(schedule);
       await registrarExecucao(schedule, result);
+      schedule.lastRunDate = now.date;
+      changed = true;
+      summary.sent += 1;
+      summary.results.push({
+        scheduleId: schedule.id,
+        status: "success",
+        keyword: schedule.keyword,
+        totalFound: result.totalFound,
+        totalFiltered: result.totalFiltered
+      });
 
       console.log(
         `Agendamento ${schedule.id} enviado: ${result.totalFiltered}/${result.totalFound} ofertas.`
       );
     } catch (error) {
+      const errorMessage = compactErrorMessage(error);
+
       await registrarFalha(schedule, error);
+      summary.failed += 1;
+      summary.results.push({
+        scheduleId: schedule.id,
+        status: "error",
+        keyword: schedule.keyword,
+        error: errorMessage
+      });
 
       console.error(`Erro no agendamento ${schedule.id}:`, error);
     } finally {
-      schedule.lastRunDate = now.date;
-      changed = true;
       isRunning = false;
     }
   }
@@ -271,6 +323,8 @@ export async function verificarAgendamentos() {
   if (changed) {
     await salvarAgendamentos(schedules);
   }
+
+  return summary;
 }
 
 export function iniciarAgendador() {

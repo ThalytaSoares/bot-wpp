@@ -14,6 +14,8 @@ const loadGroups = document.querySelector("#loadGroups");
 const saveTargets = document.querySelector("#saveTargets");
 const whatsappConnect = document.querySelector("#whatsappConnect");
 const groupsList = document.querySelector("#groupsList");
+const selectAllGroups = document.querySelector("#selectAllGroups");
+const groupsSelectionCount = document.querySelector("#groupsSelectionCount");
 const saveSchedules = document.querySelector("#saveSchedules");
 const schedulesList = document.querySelector("#schedulesList");
 const loadHistory = document.querySelector("#loadHistory");
@@ -197,12 +199,25 @@ function renderMarketOffers(offers) {
   }
 }
 
+function updateGroupsSelectionState() {
+  const checkboxes = [...groupsList.querySelectorAll('input[type="checkbox"]')];
+  const selectedCount = checkboxes.filter((checkbox) => checkbox.checked).length;
+
+  groupsSelectionCount.textContent =
+    `${selectedCount} grupo${selectedCount === 1 ? "" : "s"} selecionado${selectedCount === 1 ? "" : "s"}`;
+
+  selectAllGroups.disabled = !checkboxes.length;
+  selectAllGroups.checked = Boolean(checkboxes.length) && selectedCount === checkboxes.length;
+  selectAllGroups.indeterminate = selectedCount > 0 && selectedCount < checkboxes.length;
+}
+
 function renderGroups(groups, targets = []) {
   groupsList.innerHTML = "";
   const selectedTargets = new Set(targets);
 
   if (!groups.length) {
     groupsList.innerHTML = '<p class="shop">Nenhum grupo encontrado.</p>';
+    updateGroupsSelectionState();
     return;
   }
 
@@ -218,6 +233,7 @@ function renderGroups(groups, targets = []) {
     checkbox.type = "checkbox";
     checkbox.value = group.id;
     checkbox.checked = selectedTargets.has(group.id);
+    checkbox.addEventListener("change", updateGroupsSelectionState);
     item.className = "group-item";
     name.textContent = group.name;
     id.textContent = group.id;
@@ -227,6 +243,8 @@ function renderGroups(groups, targets = []) {
     label.append(checkbox, item);
     groupsList.appendChild(label);
   }
+
+  updateGroupsSelectionState();
 }
 
 function renderWhatsappStatus(data) {
@@ -645,6 +663,16 @@ saveTargets.addEventListener("click", async () => {
   } catch (error) {
     setStatus(error.message, "error");
   }
+});
+
+selectAllGroups.addEventListener("change", () => {
+  const checkboxes = [...groupsList.querySelectorAll('input[type="checkbox"]')];
+
+  for (const checkbox of checkboxes) {
+    checkbox.checked = selectAllGroups.checked;
+  }
+
+  updateGroupsSelectionState();
 });
 
 connectWhatsapp.addEventListener("click", async () => {

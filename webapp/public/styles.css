@@ -431,6 +431,27 @@ textarea {
   margin-bottom: 12px;
 }
 
+.groups-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: var(--panel-soft);
+}
+
+.groups-toolbar .shop {
+  margin: 0;
+  font-weight: 800;
+}
+
+.select-all-groups {
+  min-height: auto;
+}
+
 .qr-code {
   width: min(260px, 100%);
   border: 1px solid var(--line);
@@ -611,6 +632,10 @@ textarea {
   }
 
   .section-title {
+    display: grid;
+  }
+
+  .groups-toolbar {
     display: grid;
   }
 

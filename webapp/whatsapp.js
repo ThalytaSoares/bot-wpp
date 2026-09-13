@@ -6,6 +6,7 @@ import makeWASocket, {
 import { Boom } from "@hapi/boom";
 import QRCode from "qrcode";
 import qrcode from "qrcode-terminal";
+import { isAbsolute, resolve } from "node:path";
 import { config } from "./config.js";
 import { carregarDestinosWhatsapp } from "./targets.js";
 
@@ -14,6 +15,14 @@ let connectionState = "disconnected";
 let connectionPromise;
 let currentQr;
 let currentQrDataUrl;
+
+function resolveDataPath(path) {
+  if (isAbsolute(path)) {
+    return path;
+  }
+
+  return resolve(config.dataDir || process.cwd(), path);
+}
 
 function normalizarDestino(destino) {
   const value = String(destino || "").trim();
@@ -32,7 +41,7 @@ async function conectarWhatsapp() {
   }
 
   connectionPromise = (async () => {
-    const { state, saveCreds } = await useMultiFileAuthState(config.whatsappAuthDir);
+    const { state, saveCreds } = await useMultiFileAuthState(resolveDataPath(config.whatsappAuthDir));
     const { version } = await fetchLatestBaileysVersion();
 
     socket = makeWASocket({
@@ -53,8 +62,11 @@ async function conectarWhatsapp() {
             console.error("Erro ao gerar QR Code para a tela:", error);
           });
 
-        console.log("Escaneie este QR Code no WhatsApp para conectar:");
-        qrcode.generate(qr, { small: true });
+        console.log("QR Code do WhatsApp gerado para a tela do app.");
+
+        if (config.printWhatsappQrTerminal) {
+          qrcode.generate(qr, { small: true });
+        }
       }
 
       if (connection) {
@@ -102,6 +114,10 @@ export async function getWhatsappStatus() {
     qrDataUrl: currentQrDataUrl,
     targets: targets.map(normalizarDestino)
   };
+}
+
+export function getWhatsappConnectionState() {
+  return connectionState;
 }
 
 export async function listarGruposWhatsapp() {
