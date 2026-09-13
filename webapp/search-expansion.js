@@ -56,12 +56,12 @@ function getProductKey(produto) {
 
 export async function buscarProdutosComExpansao(options = {}) {
   const expandedTerms = options.expandSearch
-    ? expandirTermosBusca(options.keyword)
+    ? expandirTermosBusca(options.keyword, { maxTerms: options.maxTerms || 8 })
     : [String(options.keyword || "").trim()].filter(Boolean);
   const terms = expandedTerms.length ? expandedTerms : [String(options.keyword || "").trim()];
   const produtosByKey = new Map();
 
-  for (const term of terms) {
+  for (const [index, term] of terms.entries()) {
     const produtos = await buscarProdutos({
       ...options,
       keyword: term
@@ -78,6 +78,14 @@ export async function buscarProdutosComExpansao(options = {}) {
         ...produto,
         searchTerm: term
       });
+    }
+
+    if (typeof options.shouldStop === "function" && options.shouldStop([...produtosByKey.values()])) {
+      break;
+    }
+
+    if (options.delayMs && index < terms.length - 1) {
+      await new Promise((resolve) => setTimeout(resolve, Number(options.delayMs)));
     }
   }
 

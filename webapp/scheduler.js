@@ -25,7 +25,8 @@ const defaultSchedules = [
     expandSearch: true,
     limit: 3,
     minRating: 4.0,
-    lastRunDate: ""
+    lastRunDate: "",
+    lastRunKey: ""
   },
   {
     id: "noite-dentistas",
@@ -35,7 +36,8 @@ const defaultSchedules = [
     expandSearch: true,
     limit: 3,
     minRating: 4.0,
-    lastRunDate: ""
+    lastRunDate: "",
+    lastRunKey: ""
   }
 ];
 
@@ -87,7 +89,8 @@ function normalizeSchedule(schedule, index) {
     expandSearch: schedule.expandSearch !== false,
     limit: Math.max(1, Number(schedule.limit || 3)),
     minRating: Number(schedule.minRating || 4.0),
-    lastRunDate: schedule.lastRunDate || ""
+    lastRunDate: schedule.lastRunDate || "",
+    lastRunKey: schedule.lastRunKey || ""
   };
 }
 
@@ -122,7 +125,14 @@ async function executarAgendamento(schedule) {
   const { terms, produtos } = await buscarProdutosComExpansao({
     keyword: schedule.keyword,
     listType: 0,
-    expandSearch: schedule.expandSearch
+    expandSearch: schedule.expandSearch,
+    maxTerms: 3,
+    delayMs: schedule.expandSearch ? 3000 : 0,
+    shouldStop: (produtosEncontrados) =>
+      montarTopDoDia(produtosEncontrados, {
+        limit: schedule.limit,
+        minRating: schedule.minRating
+      }).length >= schedule.limit
   });
   const offers = montarTopDoDia(produtos, {
     limit: schedule.limit,
@@ -261,70 +271,82 @@ export async function verificarAgendamentos() {
     };
   }
 
-  const now = getNowParts();
-  const schedules = await carregarAgendamentos();
-  let changed = false;
+  isRunning = true;
 
-  const summary = {
-    checkedAt: new Date().toISOString(),
-    timezone: config.timezone,
-    due: 0,
-    sent: 0,
-    failed: 0,
-    skipped: schedules.length,
-    results: []
-  };
+  try {
+    const now = getNowParts();
+    const schedules = await carregarAgendamentos();
+    let changed = false;
 
-  for (const schedule of schedules) {
-    if (!schedule.enabled || !isScheduleDue(schedule, now) || schedule.lastRunDate === now.date) {
-      continue;
-    }
+    const summary = {
+      checkedAt: new Date().toISOString(),
+      timezone: config.timezone,
+      due: 0,
+      sent: 0,
+      failed: 0,
+      skipped: schedules.length,
+      results: []
+    };
 
-    summary.due += 1;
-    summary.skipped -= 1;
-    isRunning = true;
+    for (const schedule of schedules) {
+      const runKey = `${now.date}-${schedule.time}`;
 
-    try {
-      console.log(`Executando agendamento ${schedule.id}: ${schedule.keyword}`);
-      const result = await executarAgendamento(schedule);
-      await registrarExecucao(schedule, result);
+      if (
+        !schedule.enabled ||
+        !isScheduleDue(schedule, now) ||
+        schedule.lastRunKey === runKey ||
+        (!schedule.lastRunKey && schedule.lastRunDate === now.date)
+      ) {
+        continue;
+      }
+
+      summary.due += 1;
+      summary.skipped -= 1;
+      schedule.lastRunKey = runKey;
       schedule.lastRunDate = now.date;
       changed = true;
-      summary.sent += 1;
-      summary.results.push({
-        scheduleId: schedule.id,
-        status: "success",
-        keyword: schedule.keyword,
-        totalFound: result.totalFound,
-        totalFiltered: result.totalFiltered
-      });
+      await salvarAgendamentos(schedules);
 
-      console.log(
-        `Agendamento ${schedule.id} enviado: ${result.totalFiltered}/${result.totalFound} ofertas.`
-      );
-    } catch (error) {
-      const errorMessage = compactErrorMessage(error);
+      try {
+        console.log(`Executando agendamento ${schedule.id}: ${schedule.keyword}`);
+        const result = await executarAgendamento(schedule);
+        await registrarExecucao(schedule, result);
+        summary.sent += 1;
+        summary.results.push({
+          scheduleId: schedule.id,
+          status: "success",
+          keyword: schedule.keyword,
+          totalFound: result.totalFound,
+          totalFiltered: result.totalFiltered
+        });
 
-      await registrarFalha(schedule, error);
-      summary.failed += 1;
-      summary.results.push({
-        scheduleId: schedule.id,
-        status: "error",
-        keyword: schedule.keyword,
-        error: errorMessage
-      });
+        console.log(
+          `Agendamento ${schedule.id} enviado: ${result.totalFiltered}/${result.totalFound} ofertas.`
+        );
+      } catch (error) {
+        const errorMessage = compactErrorMessage(error);
 
-      console.error(`Erro no agendamento ${schedule.id}:`, error);
-    } finally {
-      isRunning = false;
+        await registrarFalha(schedule, error);
+        summary.failed += 1;
+        summary.results.push({
+          scheduleId: schedule.id,
+          status: "error",
+          keyword: schedule.keyword,
+          error: errorMessage
+        });
+
+        console.error(`Erro no agendamento ${schedule.id}:`, error);
+      }
     }
-  }
 
-  if (changed) {
-    await salvarAgendamentos(schedules);
-  }
+    if (changed) {
+      await salvarAgendamentos(schedules);
+    }
 
-  return summary;
+    return summary;
+  } finally {
+    isRunning = false;
+  }
 }
 
 export function iniciarAgendador() {
