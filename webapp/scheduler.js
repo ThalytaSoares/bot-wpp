@@ -16,6 +16,7 @@ function resolveDataPath(path) {
 
 const schedulesPath = resolveDataPath(config.schedulesFile);
 const historyPath = resolveDataPath(config.dispatchHistoryFile);
+const sentOfferLookbackDays = 14;
 const defaultSchedules = [
   {
     id: "manha-dentistas",
@@ -94,6 +95,78 @@ function normalizeSchedule(schedule, index) {
   };
 }
 
+function getOfferKey(offer) {
+  return String(offer?.itemId || offer?.offerLink || offer?.productName || "").trim();
+}
+
+function isRecentHistoryEntry(entry, cutoff) {
+  if (entry?.status !== "success" || !entry.createdAt) {
+    return false;
+  }
+
+  return new Date(entry.createdAt).getTime() >= cutoff.getTime();
+}
+
+function getRecentlySentOfferKeys(history, { excludeScheduleId, days = sentOfferLookbackDays } = {}) {
+  const cutoff = new Date(Date.now() - Number(days) * 24 * 60 * 60 * 1000);
+  const sentKeys = new Set();
+
+  for (const entry of history || []) {
+    if (entry.scheduleId === excludeScheduleId || !isRecentHistoryEntry(entry, cutoff)) {
+      continue;
+    }
+
+    for (const offer of entry.offers || []) {
+      const key = getOfferKey(offer);
+
+      if (key) {
+        sentKeys.add(key);
+      }
+    }
+  }
+
+  return sentKeys;
+}
+
+function montarTopComVariedade(produtos, { schedule, history }) {
+  const limit = Number(schedule.limit || 3);
+  const rankedOffers = montarTopDoDia(produtos, {
+    limit: Math.max(limit * 4, 20),
+    minRating: schedule.minRating
+  });
+  const recentlySentKeys = getRecentlySentOfferKeys(history);
+  const freshOffers = rankedOffers.filter((offer) => !recentlySentKeys.has(getOfferKey(offer)));
+  const selectedOffers = [...freshOffers];
+
+  if (selectedOffers.length < limit) {
+    for (const offer of rankedOffers) {
+      const key = getOfferKey(offer);
+
+      if (!key || selectedOffers.some((item) => getOfferKey(item) === key)) {
+        continue;
+      }
+
+      selectedOffers.push(offer);
+
+      if (selectedOffers.length >= limit) {
+        break;
+      }
+    }
+  }
+
+  return selectedOffers.slice(0, limit);
+}
+
+function contarOfertasNovas(produtos, { schedule, history }) {
+  const rankedOffers = montarTopDoDia(produtos, {
+    limit: Math.max(Number(schedule.limit || 3) * 4, 20),
+    minRating: schedule.minRating
+  });
+  const recentlySentKeys = getRecentlySentOfferKeys(history);
+
+  return rankedOffers.filter((offer) => !recentlySentKeys.has(getOfferKey(offer))).length;
+}
+
 export async function carregarAgendamentos() {
   try {
     const data = JSON.parse(await readFile(schedulesPath, "utf8"));
@@ -122,22 +195,17 @@ export async function salvarAgendamentos(schedules) {
 }
 
 async function executarAgendamento(schedule) {
+  const history = await carregarHistoricoDisparos();
   const { terms, produtos } = await buscarProdutosComExpansao({
     keyword: schedule.keyword,
     listType: 0,
     expandSearch: schedule.expandSearch,
-    maxTerms: 3,
+    maxTerms: 6,
     delayMs: schedule.expandSearch ? 3000 : 0,
     shouldStop: (produtosEncontrados) =>
-      montarTopDoDia(produtosEncontrados, {
-        limit: schedule.limit,
-        minRating: schedule.minRating
-      }).length >= schedule.limit
+      contarOfertasNovas(produtosEncontrados, { schedule, history }) >= schedule.limit
   });
-  const offers = montarTopDoDia(produtos, {
-    limit: schedule.limit,
-    minRating: schedule.minRating
-  });
+  const offers = montarTopComVariedade(produtos, { schedule, history });
   const posts = offers.map(gerarPost);
 
   if (!posts.length) {
