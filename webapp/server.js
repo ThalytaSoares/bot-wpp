@@ -75,8 +75,20 @@ async function handleApi(request, response) {
       const limit = Number(url.searchParams.get("limit") || 20);
       const minRating = Number(url.searchParams.get("minRating") || 4.0);
       const expandSearch = url.searchParams.get("expandSearch") === "on";
-      const { terms, produtos } = await buscarProdutosComExpansao({ keyword, listType, expandSearch });
-      const offers = montarTopDoDia(produtos, { limit, minRating }).map((produto) => ({
+      const minSales = Number(url.searchParams.get("minSales") || 20);
+      const { terms, produtos } = await buscarProdutosComExpansao({
+        keyword,
+        listType,
+        sortType: 2,
+        limit: Math.max(limit, 20),
+        expandSearch
+      });
+      const offers = analisarMercado(produtos, {
+        limit,
+        minRating,
+        minSales,
+        orderBy: "opportunity"
+      }).map((produto) => ({
         ...produto,
         post: gerarPost(produto)
       }));
