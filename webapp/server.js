@@ -9,7 +9,8 @@ import { buscarProdutosComExpansao } from "./search-expansion.js";
 import {
   enviarMensagemWhatsapp,
   getWhatsappStatus,
-  listarGruposWhatsapp
+  listarGruposWhatsapp,
+  reiniciarWhatsapp
 } from "./whatsapp.js";
 import { carregarDestinosWhatsapp, salvarDestinosWhatsapp } from "./targets.js";
 import {
@@ -243,6 +244,16 @@ async function handleApi(request, response) {
   if (url.pathname === "/api/whatsapp/status" && request.method === "GET") {
     try {
       sendJson(response, 200, await getWhatsappStatus());
+    } catch (error) {
+      sendJson(response, 500, { error: error.message });
+    }
+
+    return;
+  }
+
+  if (url.pathname === "/api/whatsapp/reset" && request.method === "POST") {
+    try {
+      sendJson(response, 200, await reiniciarWhatsapp({ clearAuth: true }));
     } catch (error) {
       sendJson(response, 500, { error: error.message });
     }

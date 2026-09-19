@@ -6,6 +6,7 @@ import makeWASocket, {
 import { Boom } from "@hapi/boom";
 import QRCode from "qrcode";
 import qrcode from "qrcode-terminal";
+import { rm } from "node:fs/promises";
 import { isAbsolute, resolve } from "node:path";
 import { config } from "./config.js";
 import { carregarDestinosWhatsapp } from "./targets.js";
@@ -118,6 +119,30 @@ export async function getWhatsappStatus() {
 
 export function getWhatsappConnectionState() {
   return connectionState;
+}
+
+export async function reiniciarWhatsapp({ clearAuth = false } = {}) {
+  try {
+    socket?.end?.();
+    socket?.ws?.close?.();
+  } catch (error) {
+    console.error("Erro ao encerrar conexao antiga do WhatsApp:", error);
+  }
+
+  socket = undefined;
+  connectionPromise = undefined;
+  connectionState = "disconnected";
+  currentQr = undefined;
+  currentQrDataUrl = undefined;
+
+  if (clearAuth) {
+    await rm(resolveDataPath(config.whatsappAuthDir), {
+      recursive: true,
+      force: true
+    });
+  }
+
+  return getWhatsappStatus();
 }
 
 export async function listarGruposWhatsapp() {

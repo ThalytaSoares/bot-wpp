@@ -6,3 +6,7 @@ node_modules/
 webapp/node_modules/
 offers-cache.json
 webapp/offers-cache.json
+webapp/auth_info_baileys/
+webapp/whatsapp-targets.json
+webapp/schedules.json
+webapp/dispatch-history.json

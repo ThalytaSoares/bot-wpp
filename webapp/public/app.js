@@ -358,6 +358,14 @@ function renderWhatsappStatus(data) {
   waiting.className = "shop";
   waiting.textContent = "Clique em Conectar e aguarde o QR Code aparecer.";
   whatsappConnect.appendChild(waiting);
+
+  if (data.state === "connecting") {
+    const resetButton = document.createElement("button");
+    resetButton.type = "button";
+    resetButton.textContent = "Gerar novo QR Code";
+    resetButton.addEventListener("click", resetarWhatsapp);
+    whatsappConnect.appendChild(resetButton);
+  }
 }
 
 function renderSchedules(schedules = []) {
@@ -575,6 +583,29 @@ async function atualizarStatusWhatsapp({ keepPolling = false } = {}) {
   }
 
   return data;
+}
+
+async function resetarWhatsapp() {
+  setStatus("Gerando novo QR Code do WhatsApp...");
+
+  try {
+    const response = await fetch("/api/whatsapp/reset", {
+      method: "POST"
+    });
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || "Nao foi possivel gerar um novo QR Code.");
+    }
+
+    renderWhatsappStatus(data);
+    setStatus("Aguardando novo QR Code do WhatsApp.");
+    atualizarStatusWhatsapp({ keepPolling: true }).catch((error) => {
+      setStatus(error.message, "error");
+    });
+  } catch (error) {
+    setStatus(error.message, "error");
+  }
 }
 
 form.addEventListener("submit", async (event) => {
